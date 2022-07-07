@@ -1,0 +1,19 @@
+# DL_diffusion_model flow
+
+## Dataset
+ - MNIST
+ - Cifar10
+ - vettori numerici
+
+## Trainer
+### UNet o stato dell'arte CNNs x image segmentation
+    1. Small: https://github.com/dbasso98/GANs/blob/main/CycleGANs/generator.py
+    2. Large: https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=fc4IdL5YawTN
+
+### Loss
+ - MSE noise: $L_{simple}$
+ - Add $L_{VLB}$: $L_{simple}+\lambda L_{VLB}$
+ - Add covariance matrix
+ - Improve gradient noise
+
+ Ref: https://arxiv.org/pdf/2102.09672.pdf 
