@@ -3,7 +3,11 @@ A diffusion Model object
 """
 
 from __future__ import annotations
+from typing import TypeVar, Tuple
+
 import torch.nn as nn
+
+IDT = TypeVar("IDT")  # Input Data Type
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
@@ -23,3 +27,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         """Forwarding the coll to inner module"""
         self.noise_predictor.eval()
         return self
+
+    def add_noise(self, x: IDT) -> Tuple[IDT, IDT, int]:
+        """Returns The noisy images, the noise, and the sampled times"""
+        raise NotImplementedError
