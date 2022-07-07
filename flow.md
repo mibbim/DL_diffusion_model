@@ -3,7 +3,7 @@
 ## Dataset
  - MNIST
  - Cifar10
- - vettori numerici
+ - Vettori numerici
 
 ## Trainer
 ### UNet o stato dell'arte CNNs x image segmentation
