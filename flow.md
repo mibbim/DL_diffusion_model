@@ -18,8 +18,10 @@
  - Add covariance matrix
  - Improve gradient noise
 
- ### Ref
+### Ref
  - https://arxiv.org/pdf/2102.09672.pdf 
  - https://arxiv.org/pdf/2105.05233.pdf 
  - https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=w553nqFVg8uk
 
+## Possible Future Implementations
+ - DDIM
