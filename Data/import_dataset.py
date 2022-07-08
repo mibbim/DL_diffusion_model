@@ -5,7 +5,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Subset
 import matplotlib.pyplot as plot
 
-# The main difference to work with DataLoader is that this is non-indexable (no dataset[6])
+# ratio_data to define the ratio of the total number of sample for train and test
+# e.g. if ratio_data=100, there will (total_number_sample_mnist / 100) number of sample
 def load_data(train_batch_size, test_batch_size, ratio_data = 1):
     data_train_full = MNIST(root='', train=True, 
                         transform=transforms.ToTensor(), 
@@ -32,4 +33,7 @@ def load_data(train_batch_size, test_batch_size, ratio_data = 1):
 
 
 # How to use: 
-data_train, data_test = load_data(train_batch_size=32, test_batch_size=32, ratio_data=100)
+# data_train, data_test = load_data(train_batch_size=32, test_batch_size=32, ratio_data=100)
+
+# Every call to the dataset iterator will return batch of images of size batch_size
+# The main difference to work with DataLoader is that this is non-indexable (no dataset[6])
