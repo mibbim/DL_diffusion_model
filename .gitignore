@@ -128,3 +128,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /scripts/MNIST/
+/.idea/DL_diffusion_model.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/shelf/Uncommitted_changes_before_Merge_at_08_07_22,_17_03_[Changes]/shelved.patch
+/.idea/shelf/Uncommitted_changes_before_Merge_at_08_07_22__17_03__Changes_.xml
+/.idea/vcs.xml
+/.idea/workspace.xml
