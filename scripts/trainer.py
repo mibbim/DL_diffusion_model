@@ -7,12 +7,13 @@ from __future__ import annotations
 from typing import Literal
 
 import torch.optim
-from torch.utils.data import DataLoader
-from tqdm.auto import trange
-from DiffusionModel import DiffusionModel
 from torch.nn.functional import mse_loss
+from torch.utils.data import DataLoader
 
-from DiffusionModel import Loss
+from tqdm.auto import trange
+
+from DiffusionModel import DiffusionModel
+from DiffusionModel import Loss, Device
 
 optimizers_dict = {"Adam": torch.optim.Adam}
 
@@ -30,7 +31,7 @@ class Trainer:
               diff_model: DiffusionModel,
               n_epochs: int,
               train_dataloader: DataLoader,
-              device: Literal["cuda", "cpu"] = "cuda",
+              device: Device = "cuda",
               loss_function: Loss = mse_loss
               ) -> None:
 
