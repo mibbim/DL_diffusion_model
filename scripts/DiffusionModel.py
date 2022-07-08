@@ -68,3 +68,21 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         loss.backward()
         optimizer.step()
         return loss
+
+
+def main():
+    # from Data.import_dataset import load_data
+    # import torchvision.transforms as T
+    #
+    # torch.manual_seed(8)
+    # train, test = load_data(5, 1, 1000)  # load
+    # for x, y in train:
+    #     img = T.ToPILImage()(x[0])
+    #     img.show()
+    #     pass
+    # print()
+    pass
+
+
+if __name__ == "__main__":
+    main()
