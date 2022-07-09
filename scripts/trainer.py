@@ -14,6 +14,7 @@ from tqdm.auto import trange
 
 from DiffusionModel import DiffusionModel
 from DiffusionModel import Loss, Device
+from DiffusionModel import default_device
 
 optimizers_dict = {"Adam": torch.optim.Adam}
 
@@ -31,7 +32,7 @@ class Trainer:
               diff_model: DiffusionModel,
               n_epochs: int,
               train_dataloader: DataLoader,
-              device: Device = "cuda",
+              device: Device = default_device,
               loss_function: Loss = mse_loss
               ) -> None:
 

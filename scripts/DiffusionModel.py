@@ -19,12 +19,14 @@ IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
 Device = Literal["cuda", "cpu"]
 
+default_device: Device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
     def __init__(self,
                  noise_predictor: nn.Module,
                  diffusion_steps_num: int | None = 100,
-                 evaluation_device: Device | None = "cuda",
+                 evaluation_device: Device | None = default_device,
                  ) -> None:
         super().__init__()  # Not sure should inherit
         self._noise_predictor = noise_predictor

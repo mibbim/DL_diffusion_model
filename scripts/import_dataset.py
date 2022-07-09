@@ -7,6 +7,18 @@ from torch.utils.data import Subset
 # ratio_data to define the ratio of the total number of sample for train and test
 # e.g. if ratio_data=100, there will (total_number_sample_mnist / 100) number of sample
 def load_data(train_batch_size, test_batch_size, ratio_data=1, verbose=False):
+    """
+    :param train_batch_size:
+    :param test_batch_size:
+    :param ratio_data:
+    :param verbose:
+    :return:
+
+    Iterating over the result DataLoader gives a (a, b, c, d) tensor.
+    - a is the batch size
+    - b is the channel of the image
+    - c, d are the image pixels
+    """
     data_train_full = MNIST(root='', train=True,
                             transform=transforms.ToTensor(),
                             download=True)
