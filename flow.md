@@ -6,11 +6,12 @@
  - Vettori numerici
 
 ## Trainer
+### DiffusionModel
 ### UNet o stato dell'arte CNNs x image segmentation
     1. Small: https://github.com/dbasso98/GANs/blob/main/CycleGANs/generator.py
     2. Large: https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=fc4IdL5YawTN
 
-### Try with cosine schedule  (other than linear)
+### Try with cosine schedule (other than linear)
 
 ### Loss
  - MSE noise: $L_{simple}$
