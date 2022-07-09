@@ -42,12 +42,12 @@ def test():
 
     torch.manual_seed(8)
     train_loader, test_loader = load_data(1, 1, 10000, verbose=True)  # load
-    for x, y in train_loader:
-        print(f"x is a {type(x)} of shape {x.shape}")
-        print(f"y is a {type(y)} of shape {y.shape}")
-        img = T.ToPILImage()(x[0])
-        img.show()
-        pass
+    x, y = next(iter(train_loader))
+    print(f"x is a {type(x)} of shape {x.shape}")
+    print(f"y is a {type(y)} of shape {y.shape}")
+    img = T.ToPILImage()(x[0])
+    img.show()
+    pass
 
 
 if __name__ == "__main__":
