@@ -60,10 +60,11 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         """Returns the noisy images, the noise, and the sampled times"""
         t = self._sample_t(x)
         noise = self._sample_noise(x)
+        alpha_prod_t = self._alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
         # self._alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
-        mean = x * self._alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1).sqrt()
-        var = (1 - self._alpha_prod.gather(-1, t)).reshape(-1, 1, 1, 1)
-        return mean + noise.mul(var.sqrt()), noise, t
+        mean = x * alpha_prod_t.sqrt()
+        std = (1 - alpha_prod_t).sqrt()
+        return mean + noise.mul(std), noise, t
 
     def train_step(self,
                    x: IDT,
@@ -89,7 +90,7 @@ def main():
     model = DiffusionModel(
         noise_predictor=Generator(1, 1),
         diffusion_steps_num=2,
-        evaluation_device="cuda",
+        evaluation_device="cpu",
     )
     model.train()
     train, _ = load_data(2, 1, 1000)
