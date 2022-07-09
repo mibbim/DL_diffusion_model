@@ -6,6 +6,7 @@ from typing import TypeVar, Tuple, Iterator
 
 from typing import Literal
 
+import matplotlib.pyplot as plt
 from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
 import torch.nn as nn
@@ -56,9 +57,10 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
         return self._noise_predictor.parameters()
 
-    def add_noise(self, x: IDT) -> Tuple[IDT, IDT, LongTensor]:
+    def add_noise(self, x: IDT, t: LongTensor | None = None) -> Tuple[IDT, IDT, LongTensor]:
         """Returns the noisy images, the noise, and the sampled times"""
-        t = self._sample_t(x)
+        if t is None:
+            t = self._sample_t(x)
         noise = self._sample_noise(x)
         alpha_prod_t = self._alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
         # self._alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
@@ -72,6 +74,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
                    loss_fun: Loss,
                    ):
         noisy_x, noise, t = self.add_noise(x)
+        raise NotImplementedError  # The used net doesn't want t, need to be modified
         predicted_noise = self._noise_predictor(x, t)
         loss = loss_fun(noise, predicted_noise)
         optimizer.zero_grad()
@@ -80,11 +83,31 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         return loss
 
 
-def main():
-    from import_dataset import load_data
-    from torch.nn.functional import mse_loss
-    import torchvision.transforms as T
+def test_noise():
+    from torchvision.transforms import ToPILImage
+    import numpy as np
+    total_steps = 1000
+    model = DiffusionModel(
+        noise_predictor=Generator(1, 1),
+        diffusion_steps_num=total_steps,
+        evaluation_device="cpu",
+    )
+    torch.manual_seed(8)
+    train, _ = load_data(1, 1, 1000)
+    x, y = next(iter(train))
+    img = x[0]
+    for t in np.geomspace(1, total_steps - 1, 10):
+        x_t, noise, t = model.add_noise(x, torch.tensor(t, dtype=torch.long))
+        img = torch.cat((img, x_t[0]), 2)
+        plt.figure(t)
+        plt.hist(x_t.flatten(), density=True)
+        plt.title(f"{t=}")
+    plt.show()
 
+    ToPILImage()(img).show()
+
+
+def test_trainstep():
     torch.manual_seed(8)
 
     model = DiffusionModel(
@@ -94,13 +117,16 @@ def main():
     )
     model.train()
     train, _ = load_data(2, 1, 1000)
-    for x, _ in train:
-        model.train_step(x.to(model.device),
-                         torch.optim.Adam(model.parameters()),
-                         mse_loss,
-                         )
-        break
+    x, y = next(iter(train))
+    model.train_step(x.to(model.device),
+                     torch.optim.Adam(model.parameters()),
+                     mse_loss,
+                     )
 
 
 if __name__ == "__main__":
-    main()
+    from import_dataset import load_data
+    from torch.nn.functional import mse_loss
+
+    # test_noise()
+    test_trainstep()
