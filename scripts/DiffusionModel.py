@@ -19,7 +19,7 @@ IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
 Device = Literal["cuda", "cpu"]
 
-default_device: Device = "cuda" if torch.cuda.is_available() else "cpu"
+default_device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
@@ -76,8 +76,8 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
                    loss_fun: Loss,
                    ):
         noisy_x, noise, t = self.add_noise(x)
-        raise NotImplementedError  # The used net doesn't want t, need to be modified
         predicted_noise = self._noise_predictor(x, t)
+        # raise NotImplementedError  # The used net doesn't want t, need to be modified
         loss = loss_fun(noise, predicted_noise)
         optimizer.zero_grad()
         loss.backward()
@@ -120,10 +120,15 @@ def test_trainstep():
     model.train()
     train, _ = load_data(2, 1, 1000)
     x, y = next(iter(train))
-    model.train_step(x.to(model.device),
-                     torch.optim.Adam(model.parameters()),
-                     mse_loss,
-                     )
+    losses = []
+    for _ in range(100):
+        l = model.train_step(x.to(model.device),
+                             torch.optim.Adam(model.parameters()),
+                             mse_loss,
+                             )
+        losses.append(l.item())
+    plt.plot(losses)
+    plt.show()
 
 
 if __name__ == "__main__":

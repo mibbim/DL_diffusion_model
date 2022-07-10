@@ -51,7 +51,7 @@ class Generator(nn.Module):
 
         self.model = nn.Sequential(*model)
 
-    def forward(self, input):
+    def forward(self, input, t):
         return self.model(input)
 
 
