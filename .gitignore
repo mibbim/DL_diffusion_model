@@ -135,3 +135,12 @@ dmypy.json
 /.idea/shelf/Uncommitted_changes_before_Merge_at_08_07_22__17_03__Changes_.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/test/MNIST/raw/t10k-images-idx3-ubyte
+/test/MNIST/raw/t10k-images-idx3-ubyte.gz
+/test/MNIST/raw/t10k-labels-idx1-ubyte
+/test/MNIST/raw/t10k-labels-idx1-ubyte.gz
+/test/MNIST/raw/train-images-idx3-ubyte
+/test/MNIST/raw/train-images-idx3-ubyte.gz
+/test/MNIST/raw/train-labels-idx1-ubyte
+/test/MNIST/raw/train-labels-idx1-ubyte.gz
