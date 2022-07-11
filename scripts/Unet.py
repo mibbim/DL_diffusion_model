@@ -20,34 +20,34 @@ class Generator(nn.Module):
 
         assert (n_blocks >= 0)
         super(Generator, self).__init__()
-        model = [nn.ReflectionPad2d(3),
-                 nn.Conv2d(in_channels, n_filter, kernel_size=7, padding=0),
-                 nn.InstanceNorm2d(n_filter),
-                 nn.ReLU(True)]
+        model = nn.ModuleList([nn.ReflectionPad2d(3),
+                               nn.Conv2d(in_channels, n_filter, kernel_size=7, padding=0),
+                               nn.InstanceNorm2d(n_filter),
+                               nn.ReLU(True)])
 
         layers = 2
         for i in range(layers):  # add downsampling layers
             mult = 2 ** i
-            model += [
+            model += nn.ModuleList([
                 nn.Conv2d(n_filter * mult, n_filter * mult * 2, kernel_size=3, stride=2, padding=1),
                 nn.InstanceNorm2d(n_filter * mult * 2),
-                nn.ReLU(True)]
+                nn.ReLU(True)])
 
         mult = 2 ** layers
         for i in range(n_blocks):  # add ResNet blocks
 
-            model += [ResnetBlock(n_filter * mult, use_dropout=use_dropout)]
+            model += nn.ModuleList([ResnetBlock(n_filter * mult, use_dropout=use_dropout)])
 
         for i in range(layers):  # add upsampling layers
             mult = 2 ** (layers - i)
-            model += [nn.ConvTranspose2d(n_filter * mult, int(n_filter * mult / 2),
-                                         kernel_size=3, stride=2,
-                                         padding=1, output_padding=1),
-                      nn.InstanceNorm2d(int(n_filter * mult / 2)),
-                      nn.ReLU(True)]
-        model += [nn.ReflectionPad2d(3)]
-        model += [nn.Conv2d(n_filter, output_nc, kernel_size=7, padding=0)]
-        model += [nn.Tanh()]
+            model += nn.ModuleList([nn.ConvTranspose2d(n_filter * mult, int(n_filter * mult / 2),
+                                                       kernel_size=3, stride=2,
+                                                       padding=1, output_padding=1),
+                                    nn.InstanceNorm2d(int(n_filter * mult / 2)),
+                                    nn.ReLU(True)])
+        model += nn.ModuleList([nn.ReflectionPad2d(3)])
+        model += nn.ModuleList([nn.Conv2d(n_filter, output_nc, kernel_size=7, padding=0)])
+        model += nn.ModuleList([nn.Tanh()])
 
         self.model = nn.Sequential(*model)
 
@@ -87,12 +87,11 @@ def test_random_image():
     img_size = 28
     x = torch.randn((2, img_channels, img_size, img_size))
     gen = Generator(img_channels, img_channels)
-    print(gen(x).shape)
+    print(gen(x, 1).shape)
 
 
 def test_mnist():
     img_channels = 1
-    img_size = 28
 
     from import_dataset import load_data
     torch.manual_seed(8)
@@ -101,10 +100,23 @@ def test_mnist():
 
     for x, y in train:
         in_shape = x.shape
-        out_shape = gen(x).shape
-        print(f"{in_shape=}, {out_shape=}")
+        out_shape = gen(x, 1).shape
+        assert (in_shape == out_shape)
+
+
+def test_device():
+    img_channels = 1
+    img_size = 28
+
+    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    print(f"running on {device}")
+    x = torch.randn((2, img_channels, img_size, img_size)).to(device)
+    gen = Generator(img_channels, img_channels).to(device)
+    for p in gen.parameters():
+        assert p.device == device
 
 
 if __name__ == "__main__":
     test_random_image()
     test_mnist()
+    test_device()
