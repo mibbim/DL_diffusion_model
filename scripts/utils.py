@@ -1,16 +1,15 @@
 from __future__ import annotations
 # from Unet import Generator
 # from DiffusionModel import Device, DiffusionModel
-from typing import Literal
 import torch
 
-Device = Literal["cuda", "cpu"]
+Device = torch.device
 
 default_device: Device
 if torch.cuda.is_available():
-    default_device = "cuda"
+    default_device = torch.device("cuda")
 else:
-    default_device = "cpu"
+    default_device = torch.device("cpu")
 
 # def default_model():
 #     """Returns default model used mainly for testing"""
