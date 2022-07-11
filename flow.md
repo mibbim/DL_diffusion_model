@@ -10,6 +10,7 @@
 
 - [x] Trainstep method
 - [x] Train method
+- [ ] Test train method
 - [x] Performance Meter
 - [ ] Model Save/Load
 - [ ] Check Point / Tensorboard
@@ -18,6 +19,9 @@
 ## DiffusionModel
 
 ### UNet o stato dell'arte CNNs x image segmentation
+
+ - [ ] Implement Unet
+ - [ ] Time Embeddings 
 
 Examples:
 
