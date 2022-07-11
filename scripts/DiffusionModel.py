@@ -8,16 +8,22 @@ from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
 from torch import LongTensor
 
-from typing import Literal
-import matplotlib.pyplot as plt
-
 import torch
 import torch.nn as nn
-
+from .Unet import Generator
 from .utils import default_device, Device
 
 IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
+
+
+def default_model():
+    """Returns default model used mainly for testing"""
+    return DiffusionModel(
+        noise_predictor=Generator(1, 1),
+        diffusion_steps_num=1000,
+        evaluation_device=default_device,
+    ).to(default_device)
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
@@ -85,6 +91,3 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         loss.backward()
         optimizer.step()
         return loss
-
-
-

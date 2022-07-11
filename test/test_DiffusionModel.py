@@ -46,20 +46,9 @@ def test_trainstep():
 if __name__ == "__main__":
     from scripts.import_dataset import load_data
     from torch.nn.functional import mse_loss
-    from scripts.DiffusionModel import DiffusionModel
+    from scripts.DiffusionModel import default_model
     from scripts.Unet import Generator
-    # from scripts.utils import default_model
     from scripts.utils import default_device
-
-
-    def default_model():
-        """Returns default model used mainly for testing"""
-        return DiffusionModel(
-            noise_predictor=Generator(1, 1),
-            diffusion_steps_num=1000,
-            evaluation_device=default_device,
-        ).to(default_device)
-
 
     test_noise()
     test_trainstep()

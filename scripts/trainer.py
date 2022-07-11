@@ -47,15 +47,9 @@ class Trainer:
 
         average_meter = AverageMeter(["train_mse"])
         for epoch in epochs:
-            loss = 0
-
             for x, y in train_dataloader:
                 x = x.to(device)  # Batch of Images
                 loss = diff_model.train_step(x, self.opt, loss_function)
                 average_meter.update({"train_mse": loss.item()}, n=x.shape[0])
 
             self.history["loss"].append(average_meter.metrics["train_mse"]["avg"])
-
-if __name__ == "__main__":
-    pass
-    # test_train()
