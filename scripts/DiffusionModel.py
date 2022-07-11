@@ -86,7 +86,6 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
                    ):
         noisy_x, noise, t = self.add_noise(x)
         predicted_noise = self._noise_predictor(x, t)
-        # raise NotImplementedError  # The used net doesn't want t, need to be modified
         loss = loss_fun(noise, predicted_noise)
         optimizer.zero_grad()
         loss.backward()
