@@ -31,7 +31,10 @@ def test_device(device=default_device):
     print(f"running on {device}")
     gen = Generator(img_channels, img_channels).to(device)
     for p in gen.parameters():
-        assert p.device == device
+        try:
+            assert p.device == device
+        except AssertionError:
+            print(p.device, device)
 
 
 if __name__ == "__main__":
@@ -39,4 +42,4 @@ if __name__ == "__main__":
     test_mnist()
     test_device()
     if torch.cuda.is_available():
-        test_device("cpu")
+        test_device(torch.device("cpu"))
