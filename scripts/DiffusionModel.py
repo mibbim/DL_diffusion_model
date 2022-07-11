@@ -2,28 +2,22 @@
 A diffusion Model object
 """
 from __future__ import annotations
+
 from typing import TypeVar, Tuple, Iterator
-
-from typing import Literal
-
-import matplotlib.pyplot as plt
 from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
-import torch.nn as nn
 from torch import LongTensor
-import torch
 
-from Unet import Generator
+from typing import Literal
+import matplotlib.pyplot as plt
+
+import torch
+import torch.nn as nn
+
+from .utils import default_device, Device
 
 IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
-Device = Literal["cuda", "cpu"]
-
-default_device: Device
-if torch.cuda.is_available():
-    default_device = "cuda"
-else:
-    default_device = "cpu"
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
@@ -93,59 +87,4 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         return loss
 
 
-def test_noise():
-    from torchvision.transforms import ToPILImage
-    import numpy as np
-    total_steps = 1000
-    model = DiffusionModel(
-        noise_predictor=Generator(1, 1),
-        diffusion_steps_num=total_steps,
-        evaluation_device=default_device,
-    ).to(default_device)
 
-    torch.manual_seed(8)
-    train, _ = load_data(1, 1, 1000)
-    x, y = next(iter(train))
-    img = x[0]
-    for t in np.geomspace(1, total_steps - 1, 10):
-        x_t, noise, t = model.add_noise(
-            x.to(default_device),
-            torch.tensor(int(t), dtype=torch.long).to(default_device)
-        )
-        img = torch.cat((img, x_t[0].cpu()), 2)
-        plt.figure(t)
-        plt.hist(x_t.cpu().flatten(), density=True)
-        plt.title(f"{t=}")
-    plt.show()
-
-    ToPILImage()(img).show()
-
-
-def test_trainstep():
-    torch.manual_seed(8)
-
-    model = DiffusionModel(
-        noise_predictor=Generator(1, 1),
-        diffusion_steps_num=2,
-        evaluation_device=default_device,
-    ).to(default_device)
-    model.train()
-    train, _ = load_data(2, 1, 1000)
-    x, y = next(iter(train))
-    losses = []
-    for _ in range(100):
-        l = model.train_step(x.to(model.device),
-                             torch.optim.Adam(model.parameters()),
-                             mse_loss,
-                             )
-        losses.append(l.item())
-    plt.plot(losses)
-    plt.show()
-
-
-if __name__ == "__main__":
-    from import_dataset import load_data
-    from torch.nn.functional import mse_loss
-
-    test_noise()
-    test_trainstep()
