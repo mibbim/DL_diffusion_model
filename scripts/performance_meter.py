@@ -35,7 +35,7 @@ class AverageMeter(PerformanceMeter):
         self.reset(metrics)
 
     def _reset_single_metric(self, metric: str) -> None:
-        self.metrics[metric] = self._reset_metric_dict
+        self.metrics[metric] = self._reset_metric_dict.copy()
 
     def _update_single_metric(self,
                               metric: str,
@@ -48,7 +48,7 @@ class AverageMeter(PerformanceMeter):
         self.metrics[metric]["avg"] = self.metrics[metric]["sum"] / self.metrics[metric]["count"]
 
     def update(self, values_dict: Dict[str, torch.Tensor], n: int | None = 1) -> None:
-        for metric, val in values_dict:
+        for metric, val in values_dict.items():
             self._update_single_metric(metric, val, n)
 
     def reset(self, metrics_list: Iterable[str] | None = None) -> None:
@@ -58,5 +58,16 @@ class AverageMeter(PerformanceMeter):
             self._reset_single_metric(metric)
 
 
+def test_avg_meter():
+    am = AverageMeter(["mse", "vlb"])
+    print(f"Instatiated with mse and vlb: \n", am.metrics)
+    am.update({"mse": 10, "vlb": 3})
+    print(f"Updated with 10, and 3: \n", am.metrics)
+    am.update({"mse": 30, "vlb": 5})
+    print(f"Updated with 30 and 5: \n", am.metrics)
+    am.reset()
+    print(f"Reset: \n", am.metrics)
+
+
 if __name__ == "__main__":
-    pass
+    test_avg_meter()
