@@ -56,14 +56,6 @@ class Trainer:
 
             self.history["loss"].append(average_meter.metrics["train_mse"]["avg"])
 
-
-# def test_train():
-#     """Tests that the train function works, if the model works correctly"""
-#
-#     my_trainer = Trainer(torch.optim.Adam([torch.tensor([1, 2])], 1e-3))
-#     my_trainer.train(DiffModelStub(), )
-
-
 if __name__ == "__main__":
     pass
     # test_train()

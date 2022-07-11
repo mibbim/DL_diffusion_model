@@ -2,8 +2,6 @@
 This file contains the implementation of a U-net module,
 used in DiffusionModel to predict the noise
 """
-
-import torch
 import torch.nn as nn
 
 
