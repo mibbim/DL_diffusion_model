@@ -19,7 +19,11 @@ IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
 Device = Literal["cuda", "cpu"]
 
-default_device = "cuda" if torch.cuda.is_available() else "cpu"
+default_device: Device
+if torch.cuda.is_available():
+    default_device = "cuda"
+else:
+    default_device = "cpu"
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
@@ -115,7 +119,7 @@ def test_trainstep():
     model = DiffusionModel(
         noise_predictor=Generator(1, 1),
         diffusion_steps_num=2,
-        evaluation_device="cpu",
+        evaluation_device=default_device,
     )
     model.train()
     train, _ = load_data(2, 1, 1000)
