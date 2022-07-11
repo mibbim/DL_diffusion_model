@@ -41,13 +41,19 @@ class AverageMeter(PerformanceMeter):
                               metric: str,
                               val: float,
                               n: int | None = 1) -> None:
+        """
+
+        :param metric: string that identifies the metric e.g. "mse"
+        :param val: new value of the loss function
+        :param n: number of seen examples
+        """
 
         self.metrics[metric]["val"] = val
         self.metrics[metric]["count"] += n
         self.metrics[metric]["sum"] += val * n
         self.metrics[metric]["avg"] = self.metrics[metric]["sum"] / self.metrics[metric]["count"]
 
-    def update(self, values_dict: Dict[str, torch.Tensor], n: int | None = 1) -> None:
+    def update(self, values_dict: Dict[str, float], n: int | None = 1) -> None:
         for metric, val in values_dict.items():
             self._update_single_metric(metric, val, n)
 
