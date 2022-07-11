@@ -50,6 +50,11 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         self._noise_predictor.eval()
         return self
 
+    def to(self, *args, **kwargs):
+        """Forwarding the call to inner module"""
+        self._noise_predictor.to(*args, **kwargs)
+        return self
+
     def _sample_t(self, x) -> LongTensor:
         """Samples the number of diffusion steps to apply to the batch x"""
         return torch.randint(0, self.max_diff_steps, (x.shape[0],),
@@ -96,17 +101,21 @@ def test_noise():
     model = DiffusionModel(
         noise_predictor=Generator(1, 1),
         diffusion_steps_num=total_steps,
-        evaluation_device="cpu",
-    )
+        evaluation_device=default_device,
+    ).to(default_device)
+
     torch.manual_seed(8)
     train, _ = load_data(1, 1, 1000)
     x, y = next(iter(train))
     img = x[0]
     for t in np.geomspace(1, total_steps - 1, 10):
-        x_t, noise, t = model.add_noise(x, torch.tensor(t, dtype=torch.long))
-        img = torch.cat((img, x_t[0]), 2)
+        x_t, noise, t = model.add_noise(
+            x.to(default_device),
+            torch.tensor(int(t), dtype=torch.long).to(default_device)
+        )
+        img = torch.cat((img, x_t[0].cpu()), 2)
         plt.figure(t)
-        plt.hist(x_t.flatten(), density=True)
+        plt.hist(x_t.cpu().flatten(), density=True)
         plt.title(f"{t=}")
     plt.show()
 
@@ -120,7 +129,7 @@ def test_trainstep():
         noise_predictor=Generator(1, 1),
         diffusion_steps_num=2,
         evaluation_device=default_device,
-    )
+    ).to(default_device)
     model.train()
     train, _ = load_data(2, 1, 1000)
     x, y = next(iter(train))
@@ -139,5 +148,5 @@ if __name__ == "__main__":
     from import_dataset import load_data
     from torch.nn.functional import mse_loss
 
-    # test_noise()
+    test_noise()
     test_trainstep()
