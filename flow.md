@@ -23,6 +23,9 @@
 ### UNet o stato dell'arte CNNs x image segmentation
 
 - [ ] Implement Unet
+    - [X] Upsampling/ Downsampling bulding blocks
+    - [ ] Choose Unet architecture aka number of layers
+    - [X] Use different activation functions (PreLU and ELU to be finished)
 - [ ] Time Embeddings
 
 Examples:
