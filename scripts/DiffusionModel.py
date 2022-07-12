@@ -91,3 +91,9 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         loss.backward()
         optimizer.step()
         return loss
+
+    def val_step(self, x, validation_metric):
+        noisy_x, noise, t = self.add_noise(x)
+        predicted_noise = self._noise_predictor(x, t)
+        loss = validation_metric(noise, predicted_noise)
+        return loss

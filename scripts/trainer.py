@@ -34,12 +34,17 @@ class Trainer:
     def train(self,
               n_epochs: int,
               train_dataloader: DataLoader,
+              val_dataloader: DataLoader,
               device: Device = default_device,
-              loss_function: Loss = mse_loss
+              loss_function: Loss = mse_loss,
+              validation_metric: Loss | None = None,
+              valid_each: int | None = 1,  # Epochs between evaluation
               ) -> None:
 
         # Set the module in training mode
         self.model.train()
+        if validation_metric is None:
+            validation_metric = loss_function
 
         epochs = trange(n_epochs, desc="Training epoch")
 
@@ -50,4 +55,18 @@ class Trainer:
                 loss = self.model.train_step(x, self.opt, loss_function)
                 average_meter.update({"train_mse": loss.item()}, n=x.shape[0])
 
-            self.history["train_loss"].append(average_meter.metrics["train_mse"]["avg"])
+            self.history["train_loss"].append((epoch, average_meter.metrics["train_mse"]["avg"]))
+            average_meter.reset()
+            if epoch % valid_each == 0:
+                self.model.eval()
+                self.validate(val_dataloader, validation_metric, epoch)
+                self.model.train()
+
+    def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
+        validation_meter = AverageMeter(["val_mse"])
+        for x, y in data_loader:
+            x = x
+            val_loss = self.model.validation_step(x, validation_metric)
+            validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
+        self.history["val_loss"].append((epoch, validation_meter.metrics["val_loss"]["avg"]))
+        validation_meter.reset()
