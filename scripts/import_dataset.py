@@ -4,9 +4,21 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Subset
 
 
-# ratio_data to define the ratio of the total number of sample for train and test
-# e.g. if ratio_data=100, there will (total_number_sample_mnist / 100) number of sample
 def load_data(train_batch_size, test_batch_size, ratio_data=1, verbose=False):
+    """
+    :param train_batch_size:
+    :param test_batch_size:
+    :param ratio_data: ratio_data to define the ratio of the total number of
+            sample for train and test e.g.:
+             if ratio_data=100, there will be (total_number_sample_mnist / 100) number of sample
+    :param verbose: Whether some info on the data should be printed
+    :return:
+
+    Iterating over the result DataLoader gives a (a, b, c, d) tensor.
+    - a is the batch size
+    - b is the channel of the image
+    - c, d are the image pixels
+    """
     data_train_full = MNIST(root='', train=True,
                             transform=transforms.ToTensor(),
                             download=True)
@@ -30,26 +42,8 @@ def load_data(train_batch_size, test_batch_size, ratio_data=1, verbose=False):
 
     return train_loader, test_loader
 
-
-# How to use: 
+# How to use:
 # data_train, data_test = load_data(train_batch_size=32, test_batch_size=32, ratio_data=100)
 
 # Every call to the dataset iterator will return batch of images of size batch_size
 # The main difference to work with DataLoader is that this is non-indexable (no dataset[6])
-def test():
-    import torchvision.transforms as T
-    import torch
-
-    torch.manual_seed(8)
-    train_loader, test_loader = load_data(1, 1, 10000, verbose=True)  # load
-    x, y = next(iter(train_loader))
-    print(f"x is a {type(x)} of shape {x.shape}") # [1, 1, 28, 28] 1 is the number of img in the batch, 1 is the number of channel, 28x28 pixels
-    print(f"y is a {type(y)} of shape {y.shape}")
-    img = T.ToPILImage()(x[0])
-    img.show()
-    pass
-
-
-if __name__ == "__main__":
-    test()
-

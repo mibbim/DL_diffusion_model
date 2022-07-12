@@ -2,29 +2,35 @@
 A diffusion Model object
 """
 from __future__ import annotations
+
 from typing import TypeVar, Tuple, Iterator
-
-from typing import Literal
-
-import matplotlib.pyplot as plt
 from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
-import torch.nn as nn
 from torch import LongTensor
-import torch
 
-from Unet import Generator
+import torch
+import torch.nn as nn
+from .Unet import Generator
+from .utils import default_device, Device
 
 IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
-Device = Literal["cuda", "cpu"]
+
+
+def default_model():
+    """Returns default model used mainly for testing"""
+    return DiffusionModel(
+        noise_predictor=Generator(1, 1),
+        diffusion_steps_num=1000,
+        evaluation_device=default_device,
+    ).to(default_device)
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
     def __init__(self,
                  noise_predictor: nn.Module,
                  diffusion_steps_num: int | None = 100,
-                 evaluation_device: Device | None = "cuda",
+                 evaluation_device: Device | None = default_device,
                  ) -> None:
         super().__init__()  # Not sure should inherit
         self._noise_predictor = noise_predictor
@@ -42,6 +48,11 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     def eval(self):
         """Forwarding the call to inner module"""
         self._noise_predictor.eval()
+        return self
+
+    def to(self, *args, **kwargs):
+        """Forwarding the call to inner module"""
+        self._noise_predictor.to(*args, **kwargs)
         return self
 
     def _sample_t(self, x) -> LongTensor:
@@ -74,7 +85,6 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
                    loss_fun: Loss,
                    ):
         noisy_x, noise, t = self.add_noise(x)
-        raise NotImplementedError  # The used net doesn't want t, need to be modified
         predicted_noise = self._noise_predictor(x, t)
         loss = loss_fun(noise, predicted_noise)
         optimizer.zero_grad()
@@ -82,51 +92,8 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         optimizer.step()
         return loss
 
-
-def test_noise():
-    from torchvision.transforms import ToPILImage
-    import numpy as np
-    total_steps = 1000
-    model = DiffusionModel(
-        noise_predictor=Generator(1, 1),
-        diffusion_steps_num=total_steps,
-        evaluation_device="cpu",
-    )
-    torch.manual_seed(8)
-    train, _ = load_data(1, 1, 1000)
-    x, y = next(iter(train))
-    img = x[0]
-    for t in np.geomspace(1, total_steps - 1, 10):
-        x_t, noise, t = model.add_noise(x, torch.tensor(t, dtype=torch.long))
-        img = torch.cat((img, x_t[0]), 2)
-        plt.figure(t)
-        plt.hist(x_t.flatten(), density=True)
-        plt.title(f"{t=}")
-    plt.show()
-
-    ToPILImage()(img).show()
-
-
-def test_trainstep():
-    torch.manual_seed(8)
-
-    model = DiffusionModel(
-        noise_predictor=Generator(1, 1),
-        diffusion_steps_num=2,
-        evaluation_device="cpu",
-    )
-    model.train()
-    train, _ = load_data(2, 1, 1000)
-    x, y = next(iter(train))
-    model.train_step(x.to(model.device),
-                     torch.optim.Adam(model.parameters()),
-                     mse_loss,
-                     )
-
-
-if __name__ == "__main__":
-    from import_dataset import load_data
-    from torch.nn.functional import mse_loss
-
-    # test_noise()
-    test_trainstep()
+    def val_step(self, x, validation_metric):
+        noisy_x, noise, t = self.add_noise(x)
+        predicted_noise = self._noise_predictor(x, t)
+        loss = validation_metric(noise, predicted_noise)
+        return loss
