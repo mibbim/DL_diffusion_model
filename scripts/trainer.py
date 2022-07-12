@@ -9,14 +9,12 @@ from typing import Literal
 import torch.optim
 from torch.nn.functional import mse_loss
 from torch.utils.data import DataLoader
-
 from tqdm.auto import trange
 
 from .DiffusionModel import DiffusionModel, default_model
 from .DiffusionModel import Loss
-from .utils import default_device, Device
-
 from .performance_meter import AverageMeter
+from .utils import default_device, Device
 
 optimizers_dict = {"Adam": torch.optim.Adam}
 
@@ -30,7 +28,7 @@ class Trainer:
                  ) -> None:
         self.model = model
         self.opt = optimizers_dict[optimizer](params=model.parameters(), lr=learning_rate)
-        self.history = {"loss": []}
+        self.history = {"train_loss": []}
         # self.lr = learning_rate
 
     def train(self,
@@ -52,4 +50,4 @@ class Trainer:
                 loss = self.model.train_step(x, self.opt, loss_function)
                 average_meter.update({"train_mse": loss.item()}, n=x.shape[0])
 
-            self.history["loss"].append(average_meter.metrics["train_mse"]["avg"])
+            self.history["train_loss"].append(average_meter.metrics["train_mse"]["avg"])
