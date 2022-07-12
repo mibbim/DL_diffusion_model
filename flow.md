@@ -3,6 +3,8 @@
 ## Dataset
 
 - [x] MNIST
+- [ ] Fashions mnist?
+- [ ] celebA?
 - [ ] Cifar10
 - [ ] Vettori numerici
 
@@ -10,9 +12,9 @@
 
 - [x] Trainstep method
 - [x] Train method
-- [ ] Test train method
+- [x] Test train method
 - [x] Performance Meter
-- [ ] Model Save/Load
+- [ ] Model Save / Load
 - [ ] Check Point / Tensorboard
 - [ ] Evaluation method / Evaluator Object
 
@@ -20,13 +22,14 @@
 
 ### UNet o stato dell'arte CNNs x image segmentation
 
- - [ ] Implement Unet
- - [ ] Time Embeddings 
+- [ ] Implement Unet
+- [ ] Time Embeddings
 
 Examples:
 
-    1. Small: https://github.com/dbasso98/GANs/blob/main/CycleGANs/generator.py
-    2. Large: https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=fc4IdL5YawTN
+    1. Small(no time embedding): https://github.com/dbasso98/GANs/blob/main/CycleGANs/generator.py
+    2. Large(with time embedding): https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=fc4IdL5YawTN
+    3. Simple(especially time embedding): https://huggingface.co/blog/annotated-diffusion
 
 ### Loss
 
