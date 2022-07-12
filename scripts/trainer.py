@@ -28,7 +28,8 @@ class Trainer:
                  ) -> None:
         self.model = model
         self.opt = optimizers_dict[optimizer](params=model.parameters(), lr=learning_rate)
-        self.history = {"train_loss": []}
+        self.history = {"train_loss": [],
+                        "val_loss": []}
         # self.lr = learning_rate
 
     def train(self,
@@ -66,7 +67,7 @@ class Trainer:
         validation_meter = AverageMeter(["val_mse"])
         for x, y in data_loader:
             x = x
-            val_loss = self.model.validation_step(x, validation_metric)
+            val_loss = self.model.val_step(x, validation_metric)
             validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
-        self.history["val_loss"].append((epoch, validation_meter.metrics["val_loss"]["avg"]))
+        self.history["val_loss"].append((epoch, validation_meter.metrics["val_mse"]["avg"]))
         validation_meter.reset()
