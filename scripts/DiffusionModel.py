@@ -43,11 +43,7 @@ class LinearBeta:
 
 class NoiseGenerator:
     def __init__(self,
-                 max_diff_steps: int | None = 100,
                  beta: LinearBeta = LinearBeta(),
-                 # min_beta: float | None = 0.0001,
-                 # max_beta: float | None = 0.04,
-                 # beta_schedule: BetaSchedule | None = "linear",
                  device: Device | None = default_device
                  ):
         self.device = device
@@ -87,10 +83,6 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         self._noise_predictor = noise_predictor
         self.max_diff_steps = diffusion_steps_num
         self.device = evaluation_device
-        self.betas = torch.linspace(0.0001, 0.04, self.max_diff_steps).to(
-            self.device)  # try later cosine
-        self._alphas = 1. - self.betas
-        self._alpha_prod = torch.cumprod(self._alphas, dim=0)
 
     def train(self, mode: bool = True) -> DiffusionModel:
         """Forwarding the call to inner module"""
