@@ -24,6 +24,8 @@ A diffusion model implementation for the Deep Learning Curse at Units
         https://pytorch.org/get-started/locally/
     - matplotlib 
         python -m pip install -U matplotlib
+    - imageio
+        python -m pip install -U imageio
     - tqdm
         pip install tqdm
 
