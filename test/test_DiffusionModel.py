@@ -9,7 +9,7 @@ def test_noise():
     total_steps = 1000
     model = default_model()
     torch.manual_seed(8)
-    train, _ = load_data(1, 1, 1000)
+    train, _ = load_MNIST(1, 1, 1000)
     x, y = next(iter(train))
     img = x[0]
     for t in np.geomspace(1, total_steps - 1, 10):
@@ -30,7 +30,7 @@ def test_trainstep():
     torch.manual_seed(8)
     model = default_model()
     model.train()
-    train, _ = load_data(2, 1, 1000)
+    train, _ = load_MNIST(2, 1, 1000)
     x, y = next(iter(train))
     losses = []
     for _ in range(100):
@@ -44,7 +44,7 @@ def test_trainstep():
 
 
 if __name__ == "__main__":
-    from scripts.import_dataset import load_data
+    from scripts.import_dataset import load_MNIST
     from torch.nn.functional import mse_loss
     from scripts.DiffusionModel import default_model
     from scripts.Unet import Generator
