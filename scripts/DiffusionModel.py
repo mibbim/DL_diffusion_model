@@ -42,11 +42,25 @@ class LinearBeta:
 
     @property
     def betas(self):
+        # if t is None:
         return self._betas
+
+    def get_betas_t(self, t: LongTensor):
+        return self.betas.gather(-1, t).reshape(-1, 1, 1, 1)
 
     @property
     def alpha_prod(self):
         return self._alpha_prod
+
+    def get_alpha_prod(self, t: torch.LongTensor):
+        return self.alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
+
+    @property
+    def alphas(self):
+        return self._alphas
+
+    def get_alphas(self, t: torch.LongTensor):
+        return self._alphas.gather(-1, t).gather(-1, t).reshape(-1, 1, 1, 1)
 
 
 class NoiseGenerator:
@@ -56,11 +70,11 @@ class NoiseGenerator:
                  ):
         self.device = device
         self.beta = beta
-        self.max_diff_steps = self.beta.steps
+        self.max_t = self.beta.steps
 
     def _sample_t(self, x) -> LongTensor:
         """Samples the number of diffusion steps to apply to the batch x"""
-        return torch.randint(0, self.max_diff_steps, (x.shape[0],),
+        return torch.randint(0, self.max_t, (x.shape[0],),
                              dtype=torch.long).to(self.device)
 
     @staticmethod
@@ -73,7 +87,7 @@ class NoiseGenerator:
         if t is None:
             t = self._sample_t(x)
         noise = self._sample_noise(x)
-        alpha_prod_t = self.beta.alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
+        alpha_prod_t = self.beta.get_alpha_prod(t)
         mean = x * alpha_prod_t.sqrt()
         std = (1 - alpha_prod_t).sqrt()
         return mean + noise.mul(std), noise, t
@@ -124,8 +138,19 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         return loss
 
     @torch.no_grad()
-    def val_step(self, x, validation_metric):
+    def val_step(self, x: IDT, validation_metric):
         noisy_x, noise, t = self._noise_generator.add_noise(x)
         predicted_noise = self._noise_predictor(x, t)
         loss = validation_metric(noise, predicted_noise)
         return loss
+
+    # @torch.no_grad()
+    # def generate(self,
+    #              n: int,
+    #              image_dim: Tuple[int, int] = (28, 28)):
+    #     raise NotImplementedError
+    #     x = torch.randn(n, 1, *image_dim)
+    #     for t in reversed(range(self.max_diff_steps)):
+    #         noise = self._noise_predictor(x, torch.tensor([t for _ in range(n)], dtype=torch.long))
+    #         alpha_t = self.beta.get_alphas(t)
+    #         x = x - noise
