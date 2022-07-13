@@ -1,11 +1,12 @@
 from torchvision.datasets import MNIST
-from dataset import CSSDdataset
+from scripts.dataset import CSSDdataset
 
 from torchvision import transforms
 from torch.utils.data import DataLoader, Subset
 import requests, zipfile, io, os
 import torch
 import torchvision.transforms as T
+
 
 # ratio_data to define the ratio of the total number of sample for train and test
 # e.g. if ratio_data=100, there will (total_number_sample_mnist / 100) number of sample
@@ -29,7 +30,6 @@ def load_MNIST(train_batch_size, test_batch_size, ratio_data=1, verbose=False):
                            transform=transforms.ToTensor(),
                            download=True)
 
-
     print(type(data_test_full))
     # Take only one part of the dataset
     data_train_less = Subset(data_train_full, range(0, len(data_train_full) // ratio_data))
@@ -52,23 +52,25 @@ def load_data_CSSD(train_batch_size, test_batch_size, ratio_test=0.20, verbose=F
     """
     :param train_batch_size:
     :param test_batch_size:
-    :param ratio_data: ratio of the total number of sample for train and test
+    :param ratio_test: ratio of the total number of sample for train and test
     :param verbose: if True, print some information about the dataset
     :return:
 
     """
-    
+
     if not os.path.exists('./CSSD'):
         dataset_url = "http://www.cse.cuhk.edu.hk/leojia/projects/hsaliency/data/CSSD/images.zip"
         r = requests.get(dataset_url)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         z.extractall("./CSSD")
 
-    train_data = CSSDdataset("./CSSD/images", transform=transforms.ToTensor(), test=False, ratio_test=ratio_test)
-    test_data = CSSDdataset("./CSSD/images", transform=transforms.ToTensor(), test=True, ratio_test=ratio_test)
+    train_data = CSSDdataset("./CSSD/images", transform=transforms.ToTensor(), test=False,
+                             ratio_test=ratio_test)
+    test_data = CSSDdataset("./CSSD/images", transform=transforms.ToTensor(), test=True,
+                            ratio_test=ratio_test)
     # if verbose:
     #     print(data)
-    
+
     train_loader = DataLoader(train_data, batch_size=train_batch_size, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=test_batch_size, shuffle=True)
 

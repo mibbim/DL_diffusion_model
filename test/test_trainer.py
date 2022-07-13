@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from scripts.trainer import Trainer
-from scripts.import_dataset import load_data
+from scripts.import_dataset import load_MNIST
 import numpy as np
 
 
@@ -12,7 +12,7 @@ def plot_single(H, m):
 
 def test_train():
     trainer = Trainer()
-    train_loader, test_loader = load_data(train_batch_size=16,
+    train_loader, test_loader = load_MNIST(train_batch_size=16,
                                           test_batch_size=16,
                                           ratio_data=1000)
     trainer.train(n_epochs=10,
