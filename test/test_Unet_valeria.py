@@ -2,7 +2,6 @@ import torch
 
 from scripts.Unet import Generator
 from scripts.utils import default_device
-from scripts.import_dataset import load_data
 
 
 def test_random_image():

@@ -2,7 +2,7 @@ import torch
 
 from scripts.Unet import Generator
 from scripts.utils import default_device
-from scripts.import_dataset import load_data
+from scripts.import_dataset import load_MNIST
 
 
 def test_random_image():
@@ -17,7 +17,7 @@ def test_mnist():
     img_channels = 1
 
     torch.manual_seed(8)
-    train, _ = load_data(5, 1, 1000)
+    train, _ = load_MNIST(5, 1, 1000)
     gen = Generator(img_channels, img_channels)
 
     for x, y in train:
