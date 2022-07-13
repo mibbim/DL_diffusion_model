@@ -36,9 +36,17 @@ class LinearBeta:
         self.min = lower
         self.max = upper
         self.steps = steps
-        self.betas = torch.linspace(self.min, self.max, self.steps).to(device)
+        self._betas = torch.linspace(self.min, self.max, self.steps).to(device)
         self._alphas = 1. - self.betas
-        self.alpha_prod = torch.cumprod(self._alphas, dim=0)
+        self._alpha_prod = torch.cumprod(self._alphas, dim=0)
+
+    @property
+    def betas(self):
+        return self._betas
+
+    @property
+    def alpha_prod(self):
+        return self._alpha_prod
 
 
 class NoiseGenerator:
@@ -115,6 +123,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         optimizer.step()
         return loss
 
+    @torch.no_grad()
     def val_step(self, x, validation_metric):
         noisy_x, noise, t = self._noise_generator.add_noise(x)
         predicted_noise = self._noise_predictor(x, t)
