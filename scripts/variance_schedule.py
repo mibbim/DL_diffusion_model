@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from utils import default_device, Device
+from .utils import default_device, Device
 
 import torch
 from torch import LongTensor
@@ -37,7 +37,7 @@ class VarianceSchedule(ABC):
         raise NotImplementedError
 
 
-class LinearBeta(VarianceSchedule):
+class LinearVarianceSchedule(VarianceSchedule):
     def __init__(self,
                  lower: float | None = 0.0001,
                  upper: float | None = 0.04,

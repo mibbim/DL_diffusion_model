@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 from .Unet import Generator
 from .utils import default_device, Device
+from .variance_schedule import LinearVarianceSchedule
 
 IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
@@ -27,45 +28,44 @@ def default_model():
     ).to(default_device)
 
 
-class LinearBeta:
-    def __init__(self,
-                 lower: float | None = 0.0001,
-                 upper: float | None = 0.04,
-                 steps: int = 100,
-                 device: Device | None = default_device):
-        self.min = lower
-        self.max = upper
-        self.steps = steps
-        self._betas = torch.linspace(self.min, self.max, self.steps).to(device)
-        self._alphas = 1. - self.betas
-        self._alpha_prod = torch.cumprod(self._alphas, dim=0)
-
-    @property
-    def betas(self):
-        # if t is None:
-        return self._betas
-
-    def get_betas_t(self, t: LongTensor):
-        return self.betas.gather(-1, t).reshape(-1, 1, 1, 1)
-
-    @property
-    def alpha_prod(self):
-        return self._alpha_prod
-
-    def get_alpha_prod(self, t: torch.LongTensor):
-        return self.alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
-
-    @property
-    def alphas(self):
-        return self._alphas
-
-    def get_alphas(self, t: torch.LongTensor):
-        return self._alphas.gather(-1, t).gather(-1, t).reshape(-1, 1, 1, 1)
+# class LinearBeta:
+#     def __init__(self,
+#                  lower: float | None = 0.0001,
+#                  upper: float | None = 0.04,
+#                  steps: int = 100,
+#                  device: Device | None = default_device):
+#         self.min = lower
+#         self.max = upper
+#         self.steps = steps
+#         self._betas = torch.linspace(self.min, self.max, self.steps).to(device)
+#         self._alphas = 1. - self.betas
+#         self._alpha_prod = torch.cumprod(self._alphas, dim=0)
+#
+#     @property
+#     def betas(self):
+#         return self._betas
+#
+#     def get_betas_t(self, t: LongTensor):
+#         return self.betas.gather(-1, t).reshape(-1, 1, 1, 1)
+#
+#     @property
+#     def alpha_prod(self):
+#         return self._alpha_prod
+#
+#     def get_alpha_prod(self, t: torch.LongTensor):
+#         return self.alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
+#
+#     @property
+#     def alphas(self):
+#         return self._alphas
+#
+#     def get_alphas(self, t: torch.LongTensor):
+#         return self._alphas.gather(-1, t).gather(-1, t).reshape(-1, 1, 1, 1)
 
 
 class NoiseGenerator:
     def __init__(self,
-                 beta: LinearBeta = LinearBeta(),
+                 beta: LinearVarianceSchedule = LinearVarianceSchedule(),
                  device: Device | None = default_device
                  ):
         self.device = device
@@ -87,7 +87,7 @@ class NoiseGenerator:
         if t is None:
             t = self._sample_t(x)
         noise = self._sample_noise(x)
-        alpha_prod_t = self.beta.get_alpha_prod(t)
+        alpha_prod_t = self.beta.get_alpha_prod_t(t)
         mean = x * alpha_prod_t.sqrt()
         std = (1 - alpha_prod_t).sqrt()
         return mean + noise.mul(std), noise, t
