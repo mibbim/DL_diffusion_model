@@ -13,7 +13,8 @@ ActivationType = Literal["ReLU", "LeakyReLU", "PReLU", "SiLU", "ELU", "none"]
 # Custom Activation function
 class ActivationFunc(nn.Module):
     """
-    ### Custom actiavation function to choose among ReLU, LeakyReLU, ParametricReLU, Sigmoid Linear Unit, identity.
+    ### Custom actiavation function to choose among:
+    #### ReLU, LeakyReLU, ParametricReLU, Sigmoid Linear Unit, identity.
     """
     def __init__(self, activation_type: ActivationType = "ReLU"):
         super().__init__()
@@ -47,6 +48,20 @@ class ActivationFunc(nn.Module):
 
 # Double convolutional layer for Unet
 class ConvBlock(nn.Module):
+    """
+    #### Double convolutional module with batch normalization
+    Specify custom activation function to use, other than ReLU
+
+    ----------
+    #### Parameters
+    in_channels: number
+            the number of convolution filters.
+    out_channels: number
+            the number in output of channels.
+    activation_type: ActivationType literal.
+            optional choice for activation function.
+
+    """
     def __init__(self, in_channels, out_channels, activation_type: ActivationType = "ReLU"):
         super().__init__()
         self.conv = nn.Sequential(
@@ -62,6 +77,18 @@ class ConvBlock(nn.Module):
 
 # Module for downsampling
 class ConvBlockDownsample(nn.Module):
+    """
+    ### Module for downsampling:
+    #### Calls for ConvBlock and then performs downsampling
+
+    ----------
+    #### Return type
+    out_for_upsample: 
+            data passed only through ConvBlock that will be later used in Upsampling.
+    out: 
+            data already processed with max-polling, ready to be used for another downsampling layer.
+
+    """
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = ConvBlock(in_channels,out_channels)
@@ -75,6 +102,11 @@ class ConvBlockDownsample(nn.Module):
 
 # Module for upsampling
 class ConvBlockUpsample(nn.Module):
+    """
+    ### Module for upsampling:
+    #### Calls for upsampling (center crop on data_from_downsample) and then performs ConvBlock
+
+    """
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.upsample = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=2, stride=2)
@@ -94,8 +126,18 @@ class ConvBlockUpsample(nn.Module):
         out = torch.cat([out, cropped_data_from_downsample], dim=1)
         return self.conv(out)
 
-
+#Final convolution layer with 1x1 filter
 class OutConv(nn.Module):
+    """
+    ### Final Unet layer with conv 1x1:
+    ----------
+    #### Parameters
+    in_channels: number
+            the number of convolution filters.
+    n_classes: number
+            the number of probabilities you want to get per pixel (num of output image's channels)
+
+    """
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
