@@ -3,18 +3,16 @@ A diffusion Model object
 """
 from __future__ import annotations
 
-from typing import TypeVar, Tuple, Iterator, Literal
+from typing import TypeVar, Iterator, Literal
 from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
-from torch import LongTensor
 
 import torch
 import torch.nn as nn
 from .Unet import Generator
-from .utils import default_device, Device
-from .variance_schedule import LinearVarianceSchedule
+from .utils import default_device, Device, IDT
+from .noiseGenerator import NoiseGenerator
 
-IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
 BetaSchedule = Literal["linear"]  # TypeVar("BetaSchedule")
 
@@ -26,36 +24,6 @@ def default_model():
         diffusion_steps_num=1000,
         evaluation_device=default_device,
     ).to(default_device)
-
-
-class NoiseGenerator:
-    def __init__(self,
-                 beta: LinearVarianceSchedule = LinearVarianceSchedule(),
-                 device: Device | None = default_device
-                 ):
-        self.device = device
-        self.beta = beta
-        self.max_t = self.beta.steps
-
-    def _sample_t(self, x) -> LongTensor:
-        """Samples the number of diffusion steps to apply to the batch x"""
-        return torch.randint(0, self.max_t, (x.shape[0],),
-                             dtype=torch.long).to(self.device)
-
-    @staticmethod
-    def _sample_noise(x: IDT) -> IDT:
-        """Samples the noise to add to the batch of image"""
-        return torch.randn_like(x).to(x.device)
-
-    def add_noise(self, x: IDT, t: LongTensor | None = None) -> Tuple[IDT, IDT, LongTensor]:
-        """Returns the noisy images, the noise, and the sampled times"""
-        if t is None:
-            t = self._sample_t(x)
-        noise = self._sample_noise(x)
-        alpha_prod_t = self.beta.get_alpha_prod_t(t)
-        mean = x * alpha_prod_t.sqrt()
-        std = (1 - alpha_prod_t).sqrt()
-        return mean + noise.mul(std), noise, t
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
