@@ -17,11 +17,11 @@ class ActivationFunc(nn.Module):
     """
     def __init__(self, activation_type: ActivationType = "ReLU", alpha= None):
         super().__init__()
-                # initialize alpha parameter for ParametricReLU and ELU
-        if activation_type == Literal["ReLU", "LeakyReLU", "SiLU", "none"]:
-            self.alpha = Parameter(torch.tensor(0.0)) # create a tensor out of alpha
+        # initialize alpha parameter for ParametricReLU and ELU
+        if activation_type == Literal[ "PReLU", "ELU"]:
+            self.alpha = Parameter(torch.rand(alpha)) # create a tensor out of alpha
         else:
-            self.alpha = Parameter(torch.rand(1)) # create a tensor
+            self.alpha = Parameter(torch.tensor(0.0)) # create a tensor empty
             
         self.alpha.requiresGrad = True # set requiresGrad to true!
 
@@ -29,7 +29,8 @@ class ActivationFunc(nn.Module):
             self.activation = nn.ReLU()
         elif activation_type == 'LeakyReLU':
             self.activation = nn.LeakyReLU() # 0.01 default parameter
-        elif activation_type == 'PReLU':
+        elif activation_type == 'PReLU': # to access the alpha parameter learnt use activation.weight
+            #self.activation = nn.PReLU()
             self.activation = nn.PReLU(init=alpha)
         elif activation_type == 'SiLU':
             self.activation = nn.SiLU()
@@ -48,7 +49,7 @@ class ConvBlockDownsample(nn.Module):
     def __init__(self, in_channels, out_channels, activation_type: ActivationType = "ReLU", alpha= None):
         super().__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3), #padding and stride are set to 1, no bias
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3), #padding and stride are set to 1, with bias default true
             nn.BatchNorm2d(out_channels), #dimensionality of the incoming data
             ActivationFunc(activation_type, alpha),
             nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3),
@@ -100,6 +101,7 @@ if __name__ == "__main__":
     print("Shape of output for upsample: ", output_for_upsample.shape) #([1, 64, 24, 24])
 
     block2 = ConvBlockUpsample(128, 64)
+    #print(block2.activation.weight)
     data_before_upsample = torch.rand((1, 128, 12, 12))
     # we do the forward pass by output_for_upsample from before
     output2 = block2(data_before_upsample, output_for_upsample)
