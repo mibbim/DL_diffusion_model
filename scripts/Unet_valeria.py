@@ -140,6 +140,14 @@ if __name__ == "__main__":
     output = net(data)
     print("Shape of output: ", output.shape)
 
+    # state_dict stores both parameters and persistent buffers (e.g., BatchNorm's running mean and var). 
+    # There's no way (AFAIK) to tell them apart from the state_dict itself, 
+    # you'll need to load them into the model and use sum(p.numel() for p in model.parameters() to count only the parameters.
+    print("UNet number of param: ", sum(p.numel() for p in net.parameters() if p.requires_grad)) #31037698 aka 31 milioni di trainable parameters
+    
+    # for parameter in net.parameters():
+    #     print(parameter)
+
     # block = ConvBlockDownsample(1, 64)
     # output, output_for_upsample, = block(torch.rand(1, 1, 28, 28)) #batch size, channels, size, size
     # print("Shape of output: ", output.shape) #([1, 64, 12, 12])
