@@ -21,7 +21,7 @@ def default_model():
     """Returns default model used mainly for testing"""
     return DiffusionModel(
         noise_predictor=Generator(1, 1),
-        diffusion_steps_num=1000,
+        # diffusion_steps_num=1000,
         evaluation_device=default_device,
     ).to(default_device)
 
@@ -30,13 +30,14 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     def __init__(self,
                  noise_predictor: nn.Module,
                  noise_generator: NoiseGenerator | None = NoiseGenerator(),
-                 diffusion_steps_num: int | None = 100,
+                 # diffusion_steps_num: int | None = 100,
                  evaluation_device: Device | None = default_device,
                  ) -> None:
         super().__init__()  # Not sure should inherit
         self._noise_generator = noise_generator
         self._noise_predictor = noise_predictor
-        self.max_diff_steps = diffusion_steps_num
+        # self.max_diff_steps = diffusion_steps_num
+        self.max_diff_steps = self._noise_generator.max_t
         self.device = evaluation_device
 
     def train(self, mode: bool = True) -> DiffusionModel:
@@ -85,12 +86,13 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         for t in reversed(range(self.max_diff_steps)):
             pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(n)],
                                                                dtype=torch.long))
-            beta_t = self.beta.get_betas_t(t)
-            alpha_t = self.beta.get_alphas_t(t)
-            alpha_prod_t = self.beta.get_alpha_prod_t(t)
+            t = torch.tensor(t, dtype=torch.long, device=self.device, requires_grad=False)
+            beta_t = self._noise_generator.beta.get_betas_t(t)
+            alpha_t = self._noise_generator.beta.get_alphas_t(t)
+            alpha_prod_t = self._noise_generator.beta.get_alpha_prod_t(t)
             pred_noise_term = (1 - alpha_t) * torch.div(pred_noise, (1 - alpha_prod_t).sqrt())
             noise_term = self._noise_generator.sample_noise(x).mul(beta_t)
             x = x - pred_noise_term + noise_term
             x = torch.div(x, alpha_t.sqrt())
 
-        raise NotImplementedError
+        return x

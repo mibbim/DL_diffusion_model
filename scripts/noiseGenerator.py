@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import torch
-from torch import LongTensor
+from torch import LongTensor, Tensor
 from .variance_schedule import LinearVarianceSchedule
 
 from typing import Tuple
@@ -17,17 +17,16 @@ class NoiseGenerator:
         self.beta = beta
         self.max_t = self.beta.steps
 
-    def _sample_t(self, x) -> LongTensor:
+    def _sample_t(self, x) -> Tensor:
         """Samples the number of diffusion steps to apply to the batch x"""
-        return torch.randint(0, self.max_t, (x.shape[0],),
-                             dtype=torch.long).to(self.device)
+        return torch.randint(0, self.max_t, (x.shape[0],), dtype=torch.long, device=self.device)
 
     @staticmethod
     def sample_noise(x: IDT) -> IDT:
         """Samples the noise to add to the batch of image"""
         return torch.randn_like(x, device=x.device)
 
-    def add_noise(self, x: IDT, t: LongTensor | None = None) -> Tuple[IDT, IDT, LongTensor]:
+    def add_noise(self, x: IDT, t: Tensor | None = None) -> Tuple[IDT, IDT, LongTensor]:
         """Returns the noisy images, the noise, and the sampled times"""
         if t is None:
             t = self._sample_t(x)

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from .utils import default_device, Device
 
 import torch
-from torch import LongTensor
+from torch import Tensor
 
 
 class VarianceSchedule(ABC):
@@ -15,7 +15,7 @@ class VarianceSchedule(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_betas_t(self, t: LongTensor):
+    def get_betas_t(self, t: Tensor):
         raise NotImplementedError
 
     @property
@@ -24,7 +24,7 @@ class VarianceSchedule(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_alphas_t(self, t: LongTensor):
+    def get_alphas_t(self, t: Tensor):
         raise NotImplementedError
 
     @property
@@ -33,7 +33,7 @@ class VarianceSchedule(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_alpha_prod_t(self, t: LongTensor):
+    def get_alpha_prod_t(self, t: Tensor):
         raise NotImplementedError
 
 
@@ -54,19 +54,19 @@ class LinearVarianceSchedule(VarianceSchedule):
     def betas(self):
         return self._betas
 
-    def get_betas_t(self, t: LongTensor):
+    def get_betas_t(self, t: Tensor):
         return self.betas.gather(-1, t).reshape(-1, 1, 1, 1)
 
     @property
     def alpha_prod(self):
         return self._alpha_prod
 
-    def get_alpha_prod_t(self, t: LongTensor):
+    def get_alpha_prod_t(self, t: Tensor):
         return self.alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
 
     @property
     def alphas(self):
         return self._alphas
 
-    def get_alphas_t(self, t: LongTensor):
-        return self._alphas.gather(-1, t).gather(-1, t).reshape(-1, 1, 1, 1)
+    def get_alphas_t(self, t: Tensor):
+        return self._alphas.gather(-1, t).reshape(-1, 1, 1, 1)
