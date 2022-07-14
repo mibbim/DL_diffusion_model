@@ -3,17 +3,16 @@ A diffusion Model object
 """
 from __future__ import annotations
 
-from typing import TypeVar, Tuple, Iterator, Literal
+from typing import TypeVar, Iterator, Literal, Tuple
 from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
-from torch import LongTensor
 
 import torch
 import torch.nn as nn
 from .Unet import Generator
-from .utils import default_device, Device
+from .utils import default_device, Device, IDT
+from .noiseGenerator import NoiseGenerator
 
-IDT = TypeVar("IDT")  # Input Data Type
 Loss = TypeVar("Loss")  # Loss function object
 BetaSchedule = Literal["linear"]  # TypeVar("BetaSchedule")
 
@@ -22,66 +21,23 @@ def default_model():
     """Returns default model used mainly for testing"""
     return DiffusionModel(
         noise_predictor=Generator(1, 1),
-        diffusion_steps_num=1000,
+        # diffusion_steps_num=1000,
         evaluation_device=default_device,
     ).to(default_device)
-
-
-class LinearBeta:
-    def __init__(self,
-                 lower: float | None = 0.0001,
-                 upper: float | None = 0.04,
-                 steps: int = 100,
-                 device: Device | None = default_device):
-        self.min = lower
-        self.max = upper
-        self.steps = steps
-        self.betas = torch.linspace(self.min, self.max, self.steps).to(device)
-        self._alphas = 1. - self.betas
-        self.alpha_prod = torch.cumprod(self._alphas, dim=0)
-
-
-class NoiseGenerator:
-    def __init__(self,
-                 beta: LinearBeta = LinearBeta(),
-                 device: Device | None = default_device
-                 ):
-        self.device = device
-        self.beta = beta
-        self.max_diff_steps = self.beta.steps
-
-    def _sample_t(self, x) -> LongTensor:
-        """Samples the number of diffusion steps to apply to the batch x"""
-        return torch.randint(0, self.max_diff_steps, (x.shape[0],),
-                             dtype=torch.long).to(self.device)
-
-    @staticmethod
-    def _sample_noise(x: IDT) -> IDT:
-        """Samples the noise to add to the batch of image"""
-        return torch.randn_like(x).to(x.device)
-
-    def add_noise(self, x: IDT, t: LongTensor | None = None) -> Tuple[IDT, IDT, LongTensor]:
-        """Returns the noisy images, the noise, and the sampled times"""
-        if t is None:
-            t = self._sample_t(x)
-        noise = self._sample_noise(x)
-        alpha_prod_t = self.beta.alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
-        mean = x * alpha_prod_t.sqrt()
-        std = (1 - alpha_prod_t).sqrt()
-        return mean + noise.mul(std), noise, t
 
 
 class DiffusionModel(nn.Module):  # Not sure should inherit
     def __init__(self,
                  noise_predictor: nn.Module,
                  noise_generator: NoiseGenerator | None = NoiseGenerator(),
-                 diffusion_steps_num: int | None = 100,
+                 # diffusion_steps_num: int | None = 100,
                  evaluation_device: Device | None = default_device,
                  ) -> None:
         super().__init__()  # Not sure should inherit
         self._noise_generator = noise_generator
         self._noise_predictor = noise_predictor
-        self.max_diff_steps = diffusion_steps_num
+        # self.max_diff_steps = diffusion_steps_num
+        self.max_diff_steps = self._noise_generator.max_t
         self.device = evaluation_device
 
     def train(self, mode: bool = True) -> DiffusionModel:
@@ -115,8 +71,28 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         optimizer.step()
         return loss
 
-    def val_step(self, x, validation_metric):
+    @torch.no_grad()
+    def val_step(self, x: IDT, validation_metric):
         noisy_x, noise, t = self._noise_generator.add_noise(x)
         predicted_noise = self._noise_predictor(x, t)
         loss = validation_metric(noise, predicted_noise)
         return loss
+
+    @torch.no_grad()
+    def generate(self,
+                 n: int = 1,
+                 image_dim: Tuple[int, int] = (28, 28)):
+        x = torch.randn(n, 1, *image_dim)
+        for t in reversed(range(self.max_diff_steps)):
+            pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(n)],
+                                                               dtype=torch.long))
+            t = torch.tensor(t, dtype=torch.long, device=self.device, requires_grad=False)
+            beta_t = self._noise_generator.beta.get_betas_t(t)
+            alpha_t = self._noise_generator.beta.get_alphas_t(t)
+            alpha_prod_t = self._noise_generator.beta.get_alpha_prod_t(t)
+            pred_noise_term = (1 - alpha_t) * torch.div(pred_noise, (1 - alpha_prod_t).sqrt())
+            noise_term = self._noise_generator.sample_noise(x).mul(beta_t)
+            x = x - pred_noise_term + noise_term
+            x = torch.div(x, alpha_t.sqrt())
+
+        return x

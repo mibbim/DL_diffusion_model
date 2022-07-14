@@ -3,11 +3,13 @@ from matplotlib import pyplot as plt
 
 
 def test_noise():
-    from torchvision.transforms import ToPILImage
+    from scripts.variance_schedule import LinearVarianceSchedule
     import numpy as np
 
     total_steps = 1000
-    noise_generator = NoiseGenerator(max_diff_steps=total_steps)
+    noise_generator = NoiseGenerator(
+        beta=LinearVarianceSchedule(steps=total_steps)
+    )
     torch.manual_seed(8)
     train, _ = load_MNIST(1, 1, 1000)
     x, y = next(iter(train))
@@ -43,12 +45,21 @@ def test_trainstep():
     plt.show()
 
 
+def test_generate():
+    torch.manual_seed(8)
+    model = default_model()
+    res = model.generate(3)
+    ToPILImage()(res[0]).show()
+
+
 if __name__ == "__main__":
+    from torchvision.transforms import ToPILImage
     from scripts.import_dataset import load_MNIST
     from torch.nn.functional import mse_loss
     from scripts.DiffusionModel import default_model, NoiseGenerator
     from scripts.Unet import Generator
     from scripts.utils import default_device
 
+    test_generate()
     test_noise()
     test_trainstep()
