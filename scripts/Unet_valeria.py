@@ -15,27 +15,27 @@ class ActivationFunc(nn.Module):
     """
     ### Custom actiavation function to choose among ReLU, LeakyReLU, ParametricReLU, Sigmoid Linear Unit, identity.
     """
-    def __init__(self, activation_type: ActivationType = "ReLU", alpha= None):
+    def __init__(self, activation_type: ActivationType = "ReLU"):
         super().__init__()
-        # initialize alpha parameter for ParametricReLU and ELU
-        if activation_type == Literal[ "PReLU", "ELU"]:
-            self.alpha = Parameter(torch.rand(alpha)) # create a tensor out of alpha
-        else:
-            self.alpha = Parameter(torch.tensor(0.0)) # create a tensor empty
-            
-        self.alpha.requiresGrad = True # set requiresGrad to true!
+        # # initialize alpha parameter for ParametricReLU and ELU
+        # if activation_type == Literal[ "PReLU", "ELU"]:
+        #     self.alpha = Parameter(torch.rand(alpha)) # create a tensor out of alpha
+        # else:
+        #     self.alpha = Parameter(torch.tensor(0.0)) # create a tensor empty
+        # self.alpha.requiresGrad = True # set requiresGrad to true!
 
         if activation_type == 'ReLU':
-            self.activation = nn.ReLU()
+            self.activation = nn.ReLU() # Should I use inplace=True?
         elif activation_type == 'LeakyReLU':
             self.activation = nn.LeakyReLU() # 0.01 default parameter
         elif activation_type == 'PReLU': # to access the alpha parameter learnt use activation.weight
-            #self.activation = nn.PReLU()
-            self.activation = nn.PReLU(init=alpha)
+            self.activation = nn.PReLU()
+            #self.activation = nn.PReLU(init=alpha)
         elif activation_type == 'SiLU':
             self.activation = nn.SiLU()
         elif activation_type == 'ELU': # Exponential Linear Unit (computationally more expensive than ReLU)
-            self.activation = nn.ELU(alpha=alpha)
+            self.activation = nn.ELU()
+            #self.activation = nn.ELU(alpha=alpha)
         elif activation_type == 'none':
             self.activation = lambda x: x
         else:
@@ -45,38 +45,40 @@ class ActivationFunc(nn.Module):
     def forward(self, x):
         return self.activation(x)
 
-class ConvBlockDownsample(nn.Module):
-    def __init__(self, in_channels, out_channels, activation_type: ActivationType = "ReLU", alpha= None):
+# Double convolutional layer for Unet
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, activation_type: ActivationType = "ReLU"):
         super().__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3), #padding and stride are set to 1, with bias default true
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, bias=False), # stride=1,padding=0,bias set false since usage of BatchNorm
             nn.BatchNorm2d(out_channels), #dimensionality of the incoming data
-            ActivationFunc(activation_type, alpha),
-            nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3),
+            ActivationFunc(activation_type),
+            nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, bias=False),
             nn.BatchNorm2d(out_channels),
-            ActivationFunc(activation_type, alpha)
+            ActivationFunc(activation_type)
         )
-        self.downsample = nn.MaxPool2d(kernel_size=2)
+    def forward(self, data):
+        return self.conv(data)
+
+# Module for downsampling
+class ConvBlockDownsample(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = ConvBlock(in_channels,out_channels)
+        self.downsample = nn.MaxPool2d(kernel_size=2) #the stride default value is kernel_size
         
     
     def forward(self, data):
-        out = self.conv(data)
-        out2 = self.downsample(out)
-        return out, out2
+        out_for_upsample = self.conv(data)
+        out = self.downsample(out_for_upsample)
+        return out, out_for_upsample
 
-
+# Module for upsampling
 class ConvBlockUpsample(nn.Module):
-    def __init__(self, in_channels, out_channels, activation_type: ActivationType = "ReLU", alpha= None):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
         self.upsample = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=2, stride=2)
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3),
-            nn.BatchNorm2d(out_channels),
-            ActivationFunc(activation_type, alpha),
-            nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3),
-            nn.BatchNorm2d(out_channels),
-            ActivationFunc(activation_type, alpha)
-        )
+        self.conv = ConvBlock(in_channels,out_channels)
         
     
     def forward(self, data, data_from_downsample:torch.Tensor):
@@ -91,18 +93,61 @@ class ConvBlockUpsample(nn.Module):
         cropped_data_from_downsample = data_from_downsample[:, :, H//2-h//2 : H//2+(h//2 + h%2), W//2-w//2 : W//2+(w//2 + w%2)]
         out = torch.cat([out, cropped_data_from_downsample], dim=1)
         return self.conv(out)
-        
 
+
+class OutConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(OutConv, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+
+    def forward(self, x):
+        return self.conv(x)
+
+class UNet(nn.Module):
+    def __init__(self, n_channels, n_classes):
+        super(UNet, self).__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+
+        self.down1 = ConvBlockDownsample(n_channels, 64)
+        self.down2 = ConvBlockDownsample(64, 128)
+        self.down3 = ConvBlockDownsample(128, 256)
+        self.down4 = ConvBlockDownsample(256, 512)
+        self.ground = ConvBlock(512, 1024)
+        self.up1 = ConvBlockUpsample(1024, 512)
+        self.up2 = ConvBlockUpsample(512, 256)
+        self.up3 = ConvBlockUpsample(256, 128)
+        self.up4 = ConvBlockUpsample(128, 64)
+        self.outc = OutConv(64, n_classes)
+
+    def forward(self, x):
+        x1, up1 = self.down1(x)
+        x2, up2 = self.down2(x1)
+        x3, up3 = self.down3(x2)
+        x4, up4 = self.down4(x3)
+        x5 = self.ground(x4)
+        x = self.up1(x5, up4)
+        x = self.up2(x, up3)
+        x = self.up3(x, up2)
+        x = self.up4(x, up1)
+        logits = self.outc(x)
+        return logits
 
 if __name__ == "__main__":
-    block = ConvBlockDownsample(1, 64, "ELU", 0.3)
-    output_for_upsample, output = block(torch.rand(1, 1, 28, 28)) #batch, channels, size, size
-    print("Shape of output: ", output.shape) #([1, 64, 12, 12])
-    print("Shape of output for upsample: ", output_for_upsample.shape) #([1, 64, 24, 24])
+    # n_classes is the number of probabilities you want to get per pixel
+    net = UNet(n_channels=3, n_classes=2)
+    data = torch.rand(1, 3, 572, 572)
+    output = net(data)
+    print("Shape of output: ", output.shape)
 
-    block2 = ConvBlockUpsample(128, 64)
-    #print(block2.activation.weight)
-    data_before_upsample = torch.rand((1, 128, 12, 12))
-    # we do the forward pass by output_for_upsample from before
-    output2 = block2(data_before_upsample, output_for_upsample)
-    print("Shape of output2: ", output2.shape) #([1, 64, 20, 20])
+    # block = ConvBlockDownsample(1, 64)
+    # output, output_for_upsample, = block(torch.rand(1, 1, 28, 28)) #batch size, channels, size, size
+    # print("Shape of output: ", output.shape) #([1, 64, 12, 12])
+    # print("Shape of output for upsample: ", output_for_upsample.shape) #([1, 64, 24, 24])
+
+    # block2 = ConvBlockUpsample(128, 64)
+    # #print(block2.activation.weight)
+    # data_before_upsample = torch.rand((1, 128, 12, 12))
+    # # we do the forward pass by output_for_upsample from before
+    # output2 = block2(data_before_upsample, output_for_upsample)
+    # print("Shape of output2: ", output2.shape) #([1, 64, 20, 20])
