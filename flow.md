@@ -26,6 +26,7 @@
     - [X] Upsampling/ Downsampling bulding blocks
     - [X] Choose Unet architecture aka number of layers
     - [X] Use different activation functions
+    - [ ] Fix maxpooling for odd input size of images adding a padding
 - [ ] Time Embeddings
 
 Examples:

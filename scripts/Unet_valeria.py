@@ -92,7 +92,7 @@ class ConvBlockDownsample(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.conv = ConvBlock(in_channels,out_channels)
-        self.downsample = nn.MaxPool2d(kernel_size=2) #the stride default value is kernel_size
+        self.downsample = nn.MaxPool2d(kernel_size=2) #the stride default value is kernel_size!
         
     
     def forward(self, data):
@@ -176,9 +176,15 @@ class UNet(nn.Module):
         return logits
 
 if __name__ == "__main__":
-    # n_classes is the number of probabilities you want to get per pixel
-    net = UNet(n_channels=3, n_classes=2)
-    data = torch.rand(1, 3, 572, 572)
-    output = net(data)
-    print("Shape of output: ", output.shape)
-    print("UNet number of param: ", sum(p.numel() for p in net.parameters() if p.requires_grad)) #31037698 aka 31 milioni di trainable parameters
+    m = nn.MaxPool2d(kernel_size=2)
+    input = torch.rand(1, 1, 3, 3)
+    print(input)
+    output = m(input)
+    print(output.shape)
+    print(output)
+    # # n_classes is the number of probabilities you want to get per pixel
+    # net = UNet(n_channels=3, n_classes=2)
+    # data = torch.rand(1, 3, 572, 572)
+    # output = net(data)
+    # print("Shape of output: ", output.shape)
+    # print("UNet number of param: ", sum(p.numel() for p in net.parameters() if p.requires_grad)) #31037698 aka 31 milioni di trainable parameters
