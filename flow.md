@@ -24,8 +24,8 @@
 
 - [ ] Implement Unet
     - [X] Upsampling/ Downsampling bulding blocks
-    - [ ] Choose Unet architecture aka number of layers
-    - [X] Use different activation functions (PreLU and ELU to be finished)
+    - [X] Choose Unet architecture aka number of layers
+    - [X] Use different activation functions
 - [ ] Time Embeddings
 
 Examples:
