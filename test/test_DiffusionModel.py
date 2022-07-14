@@ -4,10 +4,13 @@ from matplotlib import pyplot as plt
 
 def test_noise():
     from torchvision.transforms import ToPILImage
+    from scripts.variance_schedule import LinearVarianceSchedule
     import numpy as np
 
     total_steps = 1000
-    noise_generator = NoiseGenerator(max_diff_steps=total_steps)
+    noise_generator = NoiseGenerator(
+        beta=LinearVarianceSchedule(steps=total_steps)
+    )
     torch.manual_seed(8)
     train, _ = load_MNIST(1, 1, 1000)
     x, y = next(iter(train))
