@@ -28,41 +28,6 @@ def default_model():
     ).to(default_device)
 
 
-# class LinearBeta:
-#     def __init__(self,
-#                  lower: float | None = 0.0001,
-#                  upper: float | None = 0.04,
-#                  steps: int = 100,
-#                  device: Device | None = default_device):
-#         self.min = lower
-#         self.max = upper
-#         self.steps = steps
-#         self._betas = torch.linspace(self.min, self.max, self.steps).to(device)
-#         self._alphas = 1. - self.betas
-#         self._alpha_prod = torch.cumprod(self._alphas, dim=0)
-#
-#     @property
-#     def betas(self):
-#         return self._betas
-#
-#     def get_betas_t(self, t: LongTensor):
-#         return self.betas.gather(-1, t).reshape(-1, 1, 1, 1)
-#
-#     @property
-#     def alpha_prod(self):
-#         return self._alpha_prod
-#
-#     def get_alpha_prod(self, t: torch.LongTensor):
-#         return self.alpha_prod.gather(-1, t).reshape(-1, 1, 1, 1)
-#
-#     @property
-#     def alphas(self):
-#         return self._alphas
-#
-#     def get_alphas(self, t: torch.LongTensor):
-#         return self._alphas.gather(-1, t).gather(-1, t).reshape(-1, 1, 1, 1)
-
-
 class NoiseGenerator:
     def __init__(self,
                  beta: LinearVarianceSchedule = LinearVarianceSchedule(),
