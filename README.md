@@ -29,6 +29,11 @@ A diffusion model implementation for the Deep Learning Curse at Units
     - tqdm
         pip install tqdm
 
+## To run files in test/ folder
+```bash
+python -m test.performance_meter_test
+```
+
 <!-- MARKDOWN LINKS & IMAGES -->
 
 [contributors-shield]: https://img.shields.io/github/contributors/mibbim/DL_diffusion_model.svg?style=for-the-badge
