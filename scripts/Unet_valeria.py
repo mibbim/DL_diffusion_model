@@ -144,18 +144,3 @@ if __name__ == "__main__":
     # There's no way (AFAIK) to tell them apart from the state_dict itself, 
     # you'll need to load them into the model and use sum(p.numel() for p in model.parameters() to count only the parameters.
     print("UNet number of param: ", sum(p.numel() for p in net.parameters() if p.requires_grad)) #31037698 aka 31 milioni di trainable parameters
-    
-    # for parameter in net.parameters():
-    #     print(parameter)
-
-    # block = ConvBlockDownsample(1, 64)
-    # output, output_for_upsample, = block(torch.rand(1, 1, 28, 28)) #batch size, channels, size, size
-    # print("Shape of output: ", output.shape) #([1, 64, 12, 12])
-    # print("Shape of output for upsample: ", output_for_upsample.shape) #([1, 64, 24, 24])
-
-    # block2 = ConvBlockUpsample(128, 64)
-    # #print(block2.activation.weight)
-    # data_before_upsample = torch.rand((1, 128, 12, 12))
-    # # we do the forward pass by output_for_upsample from before
-    # output2 = block2(data_before_upsample, output_for_upsample)
-    # print("Shape of output2: ", output2.shape) #([1, 64, 20, 20])
