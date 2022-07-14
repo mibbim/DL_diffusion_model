@@ -23,15 +23,15 @@ class NoiseGenerator:
                              dtype=torch.long).to(self.device)
 
     @staticmethod
-    def _sample_noise(x: IDT) -> IDT:
+    def sample_noise(x: IDT) -> IDT:
         """Samples the noise to add to the batch of image"""
-        return torch.randn_like(x).to(x.device)
+        return torch.randn_like(x, device=x.device)
 
     def add_noise(self, x: IDT, t: LongTensor | None = None) -> Tuple[IDT, IDT, LongTensor]:
         """Returns the noisy images, the noise, and the sampled times"""
         if t is None:
             t = self._sample_t(x)
-        noise = self._sample_noise(x)
+        noise = self.sample_noise(x)
         alpha_prod_t = self.beta.get_alpha_prod_t(t)
         mean = x * alpha_prod_t.sqrt()
         std = (1 - alpha_prod_t).sqrt()

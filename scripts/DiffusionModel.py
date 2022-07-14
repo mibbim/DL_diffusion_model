@@ -3,7 +3,7 @@ A diffusion Model object
 """
 from __future__ import annotations
 
-from typing import TypeVar, Iterator, Literal
+from typing import TypeVar, Iterator, Literal, Tuple
 from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
 
@@ -77,13 +77,20 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         loss = validation_metric(noise, predicted_noise)
         return loss
 
-    # @torch.no_grad()
-    # def generate(self,
-    #              n: int,
-    #              image_dim: Tuple[int, int] = (28, 28)):
-    #     raise NotImplementedError
-    #     x = torch.randn(n, 1, *image_dim)
-    #     for t in reversed(range(self.max_diff_steps)):
-    #         noise = self._noise_predictor(x, torch.tensor([t for _ in range(n)], dtype=torch.long))
-    #         alpha_t = self.beta.get_alphas(t)
-    #         x = x - noise
+    @torch.no_grad()
+    def generate(self,
+                 n: int = 1,
+                 image_dim: Tuple[int, int] = (28, 28)):
+        x = torch.randn(n, 1, *image_dim)
+        for t in reversed(range(self.max_diff_steps)):
+            pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(n)],
+                                                               dtype=torch.long))
+            beta_t = self.beta.get_betas_t(t)
+            alpha_t = self.beta.get_alphas_t(t)
+            alpha_prod_t = self.beta.get_alpha_prod_t(t)
+            pred_noise_term = (1 - alpha_t) * torch.div(pred_noise, (1 - alpha_prod_t).sqrt())
+            noise_term = self._noise_generator.sample_noise(x).mul(beta_t)
+            x = x - pred_noise_term + noise_term
+            x = torch.div(x, alpha_t.sqrt())
+
+        raise NotImplementedError
