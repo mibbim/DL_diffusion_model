@@ -2,7 +2,7 @@
 """
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Dict, Iterable
 
 import torch
@@ -11,9 +11,11 @@ import torch
 class PerformanceMeter(ABC):
     """This class should take care of updating the metrics during training"""
 
+    @abstractmethod
     def reset(self):
         raise NotImplementedError
 
+    @abstractmethod
     def update(self, values_dict: Dict[str, torch.Tensor]):
         raise NotImplementedError
 
