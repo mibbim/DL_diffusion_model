@@ -5,11 +5,12 @@ This file contains the trainer class
 from __future__ import annotations
 
 from typing import Literal, Dict, Tuple
+from tqdm.auto import trange
+from pathlib import Path
 
 import torch.optim
 from torch.nn.functional import mse_loss
 from torch.utils.data import DataLoader
-from tqdm.auto import trange
 
 from .DiffusionModel import DiffusionModel, default_model
 from .DiffusionModel import Loss
@@ -19,12 +20,15 @@ from .utils import default_device, Device
 from torch.utils.tensorboard import SummaryWriter
 
 optimizers_dict = {"Adam": torch.optim.Adam}
+script_dir = Path(__file__).resolve().parent
 
 
 class MetricDumper:
     def __init__(self,
-                 tb_writer: SummaryWriter | None = SummaryWriter()):
-        self.tb_writer = tb_writer
+                 log_dir: Path | None = None,
+                 # tb_writer: SummaryWriter | None = SummaryWriter(),
+                 ):
+        self.tb_writer = SummaryWriter(log_dir=str(log_dir / "tb"))
 
     def dump_scalars(self, scalar_dict: Dict[str, Tuple[int, float]]):
         for k, (step, v) in scalar_dict.items():
@@ -36,9 +40,17 @@ class Trainer:
                  model: DiffusionModel = default_model(),
                  optimizer: Literal["Adam"] | None = "Adam",
                  learning_rate: float | None = 1e-3,
-                 metric_dumper: MetricDumper | None = MetricDumper(),
-                 device: torch.device | None = default_device
+                 metric_dumper: MetricDumper | None = None,
+                 device: torch.device | None = default_device,
+                 out_path: Path | None = None
                  ) -> None:
+        self.out_path = out_path
+        if self.out_path is not None:
+            self.out_path.resolve().mkdir(parents=True, exist_ok=True)
+
+        if metric_dumper is None:
+            metric_dumper = MetricDumper(log_dir=self.out_path)
+
         self.model = model
         self.opt = optimizers_dict[optimizer](params=model.parameters(), lr=learning_rate)
         self.history = {"train_loss": [],
@@ -91,12 +103,29 @@ class Trainer:
 
     def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
         validation_meter = AverageMeter(["val_mse"])
+        best_loss = torch.inf
         for x, y in data_loader:
             x = x.to(self.device)
             val_loss = self.model.val_step(x, validation_metric)
+            if val_loss.item() < best_loss:
+                self.store_state(epoch)
             validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
         self.history["val_loss"].append((epoch, validation_meter.metrics["val_mse"]["avg"]))
-        # self.dumper.dump_scalars({"val_loss": (epoch, validation_meter.metrics["val_mse"]["avg"])})
         self.dump_history()
         self._clear_history()
         validation_meter.reset()
+
+    def store_state(self, epoch):
+        checkpoint_dict = {
+            "parameters": self.model.state_dict(),
+            "optimizer": self.opt.state_dict(),
+            "epoch": epoch,
+        }
+        torch.save(checkpoint_dict, self.out_path / "checkpoint.pt")
+
+    def load_state(self, file: Path | None = None):
+        if file is None:
+            file = self.out_path / "checkpoint.pt"
+        checkpoint_dict = torch.load(file)
+        self.model.load_state_dict(checkpoint_dict["parameters"])
+        self.opt.load_state_dict(checkpoint_dict["optimizer"])

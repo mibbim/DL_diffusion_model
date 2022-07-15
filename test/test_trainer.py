@@ -1,6 +1,9 @@
+from pathlib import Path
 
 from scripts.trainer import Trainer
 from scripts.import_dataset import load_MNIST
+
+script_dir = Path(__file__).resolve().parent
 
 
 # def plot_single(H, m):
@@ -9,10 +12,10 @@ from scripts.import_dataset import load_MNIST
 
 
 def test_train():
-    trainer = Trainer()
+    trainer = Trainer(out_path=script_dir / "out")
     train_loader, test_loader = load_MNIST(train_batch_size=16,
-                                          test_batch_size=16,
-                                          ratio_data=1000)
+                                           test_batch_size=16,
+                                           ratio_data=1000)
     trainer.train(n_epochs=10,
                   train_dataloader=train_loader,
                   val_dataloader=test_loader,
