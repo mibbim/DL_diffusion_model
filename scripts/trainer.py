@@ -4,7 +4,7 @@ This file contains the trainer class
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Dict, Tuple
 
 import torch.optim
 from torch.nn.functional import mse_loss
@@ -16,7 +16,19 @@ from .DiffusionModel import Loss
 from .performance_meter import AverageMeter
 from .utils import default_device, Device
 
+from torch.utils.tensorboard import SummaryWriter
+
 optimizers_dict = {"Adam": torch.optim.Adam}
+
+
+class MetricDumper:
+    def __init__(self,
+                 tb_writer: SummaryWriter | None = SummaryWriter()):
+        self.tb_writer = tb_writer
+
+    def dump_scalars(self, scalar_dict: Dict[str, Tuple[int, float]]):
+        for k, (step, v) in scalar_dict.items():
+            self.tb_writer.add_scalar(tag=k, scalar_value=v, global_step=step)
 
 
 class Trainer:
@@ -24,12 +36,15 @@ class Trainer:
                  model: DiffusionModel = default_model(),
                  optimizer: Literal["Adam"] | None = "Adam",
                  learning_rate: float | None = 1e-3,
-
+                 metric_dumper: MetricDumper | None = MetricDumper(),
+                 device: torch.device | None = default_device
                  ) -> None:
         self.model = model
         self.opt = optimizers_dict[optimizer](params=model.parameters(), lr=learning_rate)
         self.history = {"train_loss": [],
                         "val_loss": []}
+        self.dumper = metric_dumper
+        self.device = device
         # self.lr = learning_rate
 
     def train(self,
@@ -63,11 +78,25 @@ class Trainer:
                 self.validate(val_dataloader, validation_metric, epoch)
                 self.model.train()
 
+        self.model.eval()
+        self.validate(val_dataloader, validation_metric, n_epochs)
+
+    def _clear_history(self):
+        self.history = {k: [] for k in self.history}
+
+    def dump_history(self):
+        for k, v_list in self.history.items():
+            for epoch_and_val in v_list:
+                self.dumper.dump_scalars({k: epoch_and_val})
+
     def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
         validation_meter = AverageMeter(["val_mse"])
         for x, y in data_loader:
-            x = x
+            x = x.to(self.device)
             val_loss = self.model.val_step(x, validation_metric)
             validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
         self.history["val_loss"].append((epoch, validation_meter.metrics["val_mse"]["avg"]))
+        # self.dumper.dump_scalars({"val_loss": (epoch, validation_meter.metrics["val_mse"]["avg"])})
+        self.dump_history()
+        self._clear_history()
         validation_meter.reset()

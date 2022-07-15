@@ -22,6 +22,8 @@ A diffusion model implementation for the Deep Learning Curse at Units
     - pytorch 1.12.0
         can be installed following the instruction at
         https://pytorch.org/get-started/locally/
+    - tensorboard
+        pip install tensorboard
     - matplotlib 
         python -m pip install -U matplotlib
     - imageio
