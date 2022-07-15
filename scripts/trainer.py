@@ -78,12 +78,25 @@ class Trainer:
                 self.validate(val_dataloader, validation_metric, epoch)
                 self.model.train()
 
+        self.model.eval()
+        self.validate(val_dataloader, validation_metric, n_epochs)
+
+    def _clear_history(self):
+        self.history = {k: [] for k in self.history}
+
+    def dump_history(self):
+        for k, v_list in self.history.items():
+            for epoch_and_val in v_list:
+                self.dumper.dump_scalars({k: epoch_and_val})
+
     def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
         validation_meter = AverageMeter(["val_mse"])
         for x, y in data_loader:
             x = x.to(self.device)
             val_loss = self.model.val_step(x, validation_metric)
             validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
-        self.dumper.dump_scalars({"val_loss": (epoch, validation_meter.metrics["val_mse"]["avg"])})
         self.history["val_loss"].append((epoch, validation_meter.metrics["val_mse"]["avg"]))
+        # self.dumper.dump_scalars({"val_loss": (epoch, validation_meter.metrics["val_mse"]["avg"])})
+        self.dump_history()
+        self._clear_history()
         validation_meter.reset()
