@@ -14,9 +14,9 @@
 - [x] Train method
 - [x] Test train method
 - [x] Performance Meter
-- [ ] Model Save / Load
+- [X] Model Save / Load
 - [x] Check Point / Tensorboard
-- [ ] Evaluation method / Evaluator Object
+- [ ] Evaluation method / Evaluator Object (maybe not necessary)
 
 ## DiffusionModel
 
