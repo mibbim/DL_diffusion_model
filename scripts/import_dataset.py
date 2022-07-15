@@ -1,5 +1,5 @@
 from torchvision.datasets import MNIST
-from dataset import CSSDdataset
+from scripts.dataset import CSSDdataset
 
 from torchvision import transforms
 from torch.utils.data import DataLoader, Subset
