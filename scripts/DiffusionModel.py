@@ -79,20 +79,27 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         return loss
 
     @torch.no_grad()
+    def _backward_step(self, x, t):
+        pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(x.size[0])],
+                                                           dtype=torch.long))
+        t = torch.tensor(t, dtype=torch.long, device=self.device, requires_grad=False)
+        beta_t = self._noise_generator.beta.get_betas_t(t)
+        alpha_t = self._noise_generator.beta.get_alphas_t(t)
+        alpha_prod_t = self._noise_generator.beta.get_alpha_prod_t(t)
+        pred_noise_term = (1 - alpha_t) * torch.div(pred_noise, (1 - alpha_prod_t).sqrt())
+        noise_term = self._noise_generator.sample_noise(x).mul(beta_t)
+        x = x - pred_noise_term + noise_term
+        x = torch.div(x, alpha_t.sqrt())
+        return x
+
+    @torch.no_grad()
+    def generate_from(self, x):
+        for t in reversed(range(self.max_diff_steps)):
+            x = self._backward_step(x, t)
+        return x
+
+    @torch.no_grad()
     def generate(self,
                  n: int = 1,
                  image_dim: Tuple[int, int] = (28, 28)):
-        x = torch.randn(n, 1, *image_dim)
-        for t in reversed(range(self.max_diff_steps)):
-            pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(n)],
-                                                               dtype=torch.long))
-            t = torch.tensor(t, dtype=torch.long, device=self.device, requires_grad=False)
-            beta_t = self._noise_generator.beta.get_betas_t(t)
-            alpha_t = self._noise_generator.beta.get_alphas_t(t)
-            alpha_prod_t = self._noise_generator.beta.get_alpha_prod_t(t)
-            pred_noise_term = (1 - alpha_t) * torch.div(pred_noise, (1 - alpha_prod_t).sqrt())
-            noise_term = self._noise_generator.sample_noise(x).mul(beta_t)
-            x = x - pred_noise_term + noise_term
-            x = torch.div(x, alpha_t.sqrt())
-
-        return x
+        return self.generate_from(torch.randn(n, 1, *image_dim))
