@@ -1,5 +1,4 @@
-# import sys
-# sys.path.append('../')
+# python -m test_import_dataset
 
 from scripts.import_dataset import load_MNIST
 from scripts.import_dataset import load_data_CSSD
