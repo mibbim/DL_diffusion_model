@@ -36,13 +36,15 @@ class Trainer:
                  model: DiffusionModel = default_model(),
                  optimizer: Literal["Adam"] | None = "Adam",
                  learning_rate: float | None = 1e-3,
-                 metric_dumper: MetricDumper | None = MetricDumper()
+                 metric_dumper: MetricDumper | None = MetricDumper(),
+                 device: torch.device | None = default_device
                  ) -> None:
         self.model = model
         self.opt = optimizers_dict[optimizer](params=model.parameters(), lr=learning_rate)
         self.history = {"train_loss": [],
                         "val_loss": []}
         self.dumper = metric_dumper
+        self.device = device
         # self.lr = learning_rate
 
     def train(self,
@@ -79,7 +81,7 @@ class Trainer:
     def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
         validation_meter = AverageMeter(["val_mse"])
         for x, y in data_loader:
-            x = x
+            x = x.to(self.device)
             val_loss = self.model.val_step(x, validation_metric)
             validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
         self.dumper.dump_scalars({"val_loss": (epoch, validation_meter.metrics["val_mse"]["avg"])})
