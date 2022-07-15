@@ -97,6 +97,8 @@ class ConvBlockDownsample(nn.Module):
     
     def forward(self, data):
         out_for_upsample = self.conv(data)
+        if out_for_upsample.size(dim=2)%2 != 0:
+            out_for_upsample = nn.ReplicationPad2d(0,1,0,1) #padding_left,padding_right,padding_top,padding_bottom
         out = self.downsample(out_for_upsample)
         return out, out_for_upsample
 
@@ -119,6 +121,8 @@ class ConvBlockUpsample(nn.Module):
         # data_from_downsample has dimension ch x H x W
         # with H > h, W > w
         h, w = out.shape[2], out.shape[3]
+        if h%2 != 0:
+            data = nn.ReplicationPad2d(0,1,0,1) #padding_left,padding_right,padding_top,padding_bottom
         H, W = data_from_downsample.shape[2], data_from_downsample.shape[3]
         # do a center crop of data_from_downsample 
         # (starting from H//2, W//2, the center pixel of the larger image)
@@ -146,7 +150,17 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes):
+    """
+    ### Unet network:
+    ----------
+    #### Parameters
+    n_channels: number
+            the number of convolution filters for start.
+    n_classes: number, default is 2 (binary classification)
+            the number of probabilities you want to get per pixel (num of output image's channels)
+
+    """
+    def __init__(self, n_channels, n_classes=2):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
