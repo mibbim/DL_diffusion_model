@@ -29,7 +29,11 @@
     - [X] Fix maxpooling for odd input size of images adding a padding
     - [X] Add dropout -> ask for where?
     - [ ] Change weights initialization with Xavier and He et. alt.
-- [ ] Time Embeddings 
+- [ ] Time Embeddings  (from https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=aHwkcmvkRLH0 https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py and https://huggingface.co/blog/annotated-diffusion implementations)
+    - [X] Sinusoidal Encoder 
+    - [X] MPL for time embedding in DoubleConv class
+    - [X] Attention block
+    - [ ] Usage of Attention block in ConvBlockDownsample and ConvBlockUpsample
 
 Examples:
 
