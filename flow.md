@@ -22,12 +22,14 @@
 
 ### UNet o stato dell'arte CNNs x image segmentation
 
-- [ ] Implement Unet
+- [X] Implement Unet
     - [X] Upsampling/ Downsampling bulding blocks
     - [X] Choose Unet architecture aka number of layers
     - [X] Use different activation functions
-    - [X] Fix maxpooling for odd input size of images adding a padding -> is it ok?
-- [ ] Time Embeddings
+    - [X] Fix maxpooling for odd input size of images adding a padding
+    - [X] Add dropout -> ask for where?
+    - [ ] Change weights initialization with Xavier and He et. alt.
+- [ ] Time Embeddings 
 
 Examples:
 
@@ -48,6 +50,7 @@ Examples:
 - https://arxiv.org/pdf/2102.09672.pdf
 - https://arxiv.org/pdf/2105.05233.pdf
 - https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=w553nqFVg8uk
+- https://arxiv.org/pdf/1706.03762.pdf
 
 ## Possible Future Implementations
 

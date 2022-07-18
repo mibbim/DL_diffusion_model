@@ -6,7 +6,7 @@ from scripts.Unet_valeria import UNet
 
 def test_random_image():
     # n_classes is the number of probabilities you want to get per pixel
-    net = UNet(n_channels=3, n_classes=2)
+    net = UNet(n_channels=3, n_classes=1)
     data = torch.rand(1, 3, 572, 572)
     output = net(data)
     print("Shape of output: ", output.shape)
