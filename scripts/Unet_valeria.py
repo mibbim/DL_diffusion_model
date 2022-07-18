@@ -115,7 +115,6 @@ class DoubleConvBlock(nn.Module):
             if time_emb_dim
             else None
         )
-        #nn.init.kaiming_uniform_(w, mode='fan_in', nonlinearity='relu')
 
     def forward(self, data, time_emb=None):
         """
