@@ -14,8 +14,13 @@ ActivationType = Literal["ReLU", "LeakyReLU", "PReLU", "SiLU", "ELU", "none"]
 # Custom Activation function
 class ActivationFunc(nn.Module):
     """
-    ### Custom actiavation function to choose among:
-    #### ReLU, LeakyReLU, ParametricReLU, Sigmoid Linear Unit, identity.
+    #### Custom actiavation function to choose among:
+    ReLU, LeakyReLU, ParametricReLU, Sigmoid Linear Unit, Exponential Linear Unit, identity.
+
+    ----------
+    #### Parameters
+    * `activation_type`: ActivationType Literal
+        the name of the custom activation function.
     """
     def __init__(self, activation_type: ActivationType = "ReLU"):
         super().__init__()
@@ -79,40 +84,45 @@ class SinusoidalPositionEmbeddings(nn.Module):
 # Double convolutional layer for Unet
 class DoubleConvBlock(nn.Module):
     """
-    #### Double convolutional module with batch normalization
-    Specify custom activation function to use, other than ReLU
+    #### Double convolutional block has two convolution layers with batch normalization
+    Specify custom activation function to use, other than default ReLU
 
     ----------
     #### Parameters
-    in_channels: number
+    * `in_channels`: number
             the number of convolution filters.
-    out_channels: number
+    * `out_channels`: number
             the number in output of channels.
-    activation_type: ActivationType literal.
+    * `activation_type`: ActivationType literal.
             optional choice for activation function.
-    dropout: number, default is None.
+    * `dropout`: number, default is None.
             optional choice for dropout rate (use 0.1).
+    * `time_channels`: number
+            the number channels in the time step ($t$) embeddings.
 
     """
-    def __init__(self, in_channels, out_channels, activation_type: ActivationType = "ReLU", dropout=None, time_emb_dim=None):
+    def __init__(self, in_channels: int, out_channels: int, activation_type: ActivationType = "ReLU", dropout=None, time_channels=None):
         super().__init__()
 
-        layers = [
+        # First convolution layer and batch normalization with optional dropout
+        layers = nn.ModuleList([
             nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, bias=False), # stride=1,padding=0,bias set false since usage of BatchNorm
             nn.BatchNorm2d(out_channels), #dimensionality of the incoming data
-            ActivationFunc(activation_type)]
+            ActivationFunc(activation_type)])
         if dropout:
-            layers.append(nn.Dropout(dropout))
+            layers+= nn.ModuleList(nn.Dropout(dropout))
         self.conv_block1 = nn.Sequential(*layers)
 
+        # Second convolution layer and batch normalization
         self.conv_block2 = nn.Sequential(
             nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, bias=False),
             nn.BatchNorm2d(out_channels),
             ActivationFunc(activation_type))
 
+        # MPL for time embeddings
         self.mlp = (
-            nn.Sequential(ActivationFunc(activation_type), nn.Linear(time_emb_dim, out_channels)) #order?
-            if time_emb_dim
+            nn.Sequential(ActivationFunc(activation_type), nn.Linear(time_channels, out_channels)) #order?
+            if time_channels
             else None
         )
 
@@ -136,9 +146,9 @@ class AttentionBlock(nn.Module):
     ### Attention block from https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=aHwkcmvkRLH0
     """
 
-    def __init__(self, n_channels: int, n_heads: int = 1, d_k: int = None, n_groups: int = 32):
+    def __init__(self, in_channels: int, n_heads: int = 1, d_k: int = None, n_groups: int = 32):
         """
-        * `n_channels` is the number of channels in the input
+        * `in_channels` is the number of channels in the input
         * `n_heads` is the number of heads in multi-head attention
         * `d_k` is the number of dimensions in each head
         * `n_groups` is the number of groups for [group normalization](../../normalization/group_norm/index.html)
@@ -147,13 +157,13 @@ class AttentionBlock(nn.Module):
 
         # Default `d_k`
         if d_k is None:
-            d_k = n_channels
+            d_k = in_channels
         # Normalization layer
-        self.norm = nn.GroupNorm(n_groups, n_channels)
+        self.norm = nn.GroupNorm(n_groups, in_channels)
         # Projections for query, key and values
-        self.projection = nn.Linear(n_channels, n_heads * d_k * 3)
+        self.projection = nn.Linear(in_channels, n_heads * d_k * 3)
         # Linear layer for final transformation
-        self.output = nn.Linear(n_heads * d_k, n_channels)
+        self.output = nn.Linear(n_heads * d_k, in_channels)
         # Scale for dot-product attention
         self.scale = d_k ** -0.5
         #
@@ -169,9 +179,9 @@ class AttentionBlock(nn.Module):
         # to match with `ResidualBlock`.
         _ = t
         # Get shape
-        batch_size, n_channels, height, width = x.shape
-        # Change `x` to shape `[batch_size, seq, n_channels]`
-        x = x.view(batch_size, n_channels, -1).permute(0, 2, 1)
+        batch_size, in_channels, height, width = x.shape
+        # Change `x` to shape `[batch_size, seq, in_channels]`
+        x = x.view(batch_size, in_channels, -1).permute(0, 2, 1)
         # Get query, key, and values (concatenated) and shape it to `[batch_size, seq, n_heads, 3 * d_k]`
         qkv = self.projection(x).view(batch_size, -1, self.n_heads, 3 * self.d_k)
         # Split query, key, and values. Each of them will have shape `[batch_size, seq, n_heads, d_k]`
@@ -184,14 +194,14 @@ class AttentionBlock(nn.Module):
         res = torch.einsum('bijh,bjhd->bihd', attn, v)
         # Reshape to `[batch_size, seq, n_heads * d_k]`
         res = res.view(batch_size, -1, self.n_heads * self.d_k)
-        # Transform to `[batch_size, seq, n_channels]`
+        # Transform to `[batch_size, seq, in_channels]`
         res = self.output(res)
 
         # Add skip connection
         res += x
 
         # Change to shape `[batch_size, in_channels, height, width]`
-        res = res.permute(0, 2, 1).view(batch_size, n_channels, height, width)
+        res = res.permute(0, 2, 1).view(batch_size, in_channels, height, width)
 
         #
         return res
@@ -203,14 +213,20 @@ class ConvBlockDownsample(nn.Module):
     #### Calls for ConvBlock and then performs downsampling
 
     ----------
+    #### Parameters
+    * `in_channels`: number
+            the number of convolution filters.
+    * `out_channels`: number
+            the number in output of channels.
+    ----------
     #### Return type
-    out_for_upsample: 
+    * `out_for_upsample`: 
             data passed only through ConvBlock that will be later used in Upsampling.
-    out: 
+    * `out`: 
             data already processed with max-polling, ready to be used for another downsampling layer.
 
     """
-    def __init__(self, in_channels, out_channels, dropout=None):
+    def __init__(self, in_channels: int, out_channels: int, dropout=None):
         super().__init__()
         self.conv = DoubleConvBlock(in_channels,out_channels, dropout=dropout)
         self.downsample = nn.MaxPool2d(kernel_size=2) #the stride default value is kernel_size!
@@ -230,9 +246,14 @@ class ConvBlockUpsample(nn.Module):
     #### Calls for upsampling (center crop on data_from_downsample) and then performs ConvBlock
     ----------
     #### Parameters
-        dropout: number, default is None
+    * `in_channels`: number
+        the number of convolution filters.
+    * `out_channels`: number
+        the number in output of channels.
+    * `dropout`: number, default is None
+        the dropout rate.
     """
-    def __init__(self, in_channels, out_channels, dropout=None):
+    def __init__(self, in_channels: int, out_channels: int, dropout=None):
         super().__init__()
         self.upsample = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=2, stride=2)
         self.conv = DoubleConvBlock(in_channels,out_channels, dropout=dropout)
@@ -260,13 +281,13 @@ class OutConv(nn.Module):
     ### Final Unet layer with conv 1x1:
     ----------
     #### Parameters
-    in_channels: number
+    * `in_channels`: number
             the number of convolution filters.
-    n_classes: number
+    * `n_classes`: number
             the number of probabilities you want to get per pixel (num of output image's channels)
     
     """
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels: int):
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
@@ -275,32 +296,65 @@ class OutConv(nn.Module):
 
 class UNet(nn.Module):
     """
-    ### Unet network:
+    ### UNet network:
     ----------
     #### Parameters
-    n_channels: number
-            the number of convolution filters for start.
-    n_classes: number, default is 1 (regression problem)
-            the number of probabilities you want to get per pixel (num of output image's channels)
-    dropout: number, default is None 
-            Use 0.1 rate as paper https://arxiv.org/pdf/2006.11239.pdf suggested - implementation https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py)
+    * `n_channels`: number, default is 3
+            the number of input image's channels.
+    * `n_classes`: number, default is 1 (regression problem)
+            the number of probabilities you want to get per pixel aka  the number of output image's channels.
+    * `n_conv_filters`: number, default is 64
+            the number of convolutional filters for starting UNet block.
+    * `n_unet_blocks`: number, default is 9
+            the number of double convolutional blocks.
+    * `dropout`: number, default is None 
+            dropout rate. Use 0.1 as paper https://arxiv.org/pdf/2006.11239.pdf suggested - implementation https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py)
 
     """
-    def __init__(self, n_channels, n_classes=1, dropout=None):
+    def __init__(self, n_channels: int=3, n_classes: int=1, n_conv_filters: int=64, n_unet_blocks: int=9, dropout=None):
+        assert (n_unet_blocks >= 0 and n_unet_blocks%2 == 1), "n_unet_blocks must be an odd number"
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.down1 = ConvBlockDownsample(n_channels, 64, dropout=dropout)
-        self.down2 = ConvBlockDownsample(64, 128, dropout=dropout)
-        self.down3 = ConvBlockDownsample(128, 256, dropout=dropout)
-        self.down4 = ConvBlockDownsample(256, 512, dropout=dropout)
-        self.ground = DoubleConvBlock(512, 1024)
-        self.up1 = ConvBlockUpsample(1024, 512, dropout=dropout)
-        self.up2 = ConvBlockUpsample(512, 256, dropout=dropout)
-        self.up3 = ConvBlockUpsample(256, 128, dropout=dropout)
-        self.up4 = ConvBlockUpsample(128, 64, dropout=dropout)
-        self.outc = OutConv(64, n_classes)
+        # # First block
+        # model, res = [ConvBlockDownsample(n_channels, n_conv_filters, dropout=dropout)]
+
+        # # Downsample blocks
+        # n_downsample_blocks = n_unet_blocks // 2 #4
+        # for i in range(n_downsample_blocks - 1): # 0,1,2
+        #     mult = 2 ** i# 1 2 4
+        #     model, res += [ConvBlockDownsample(n_conv_filters * mult, n_conv_filters * mult * 2, dropout=dropout)]
+
+        # # Middle blocks
+        # mult_mid_block= 2 ** (n_downsample_blocks -1)
+        # model += DoubleConvBlock(n_conv_filters * mult_mid_block, n_conv_filters* mult_mid_block * 2)
+
+        # # Upsample blocks
+        # for i in range(n_downsample_blocks,0,-1): # 0,1,2,3
+        #     mult = 2 ** i# 1 2 4 8
+        #     model, res += [ConvBlockUpsample(n_channels, n_conv_filters * mult, dropout=dropout)]
+
+        # # Final block
+        # model += [OutConv(n_conv_filters, n_classes)]
+        # self.model = nn.Sequential(*model)
+
+        # Downsample blocks
+        self.down1 = ConvBlockDownsample(n_channels, n_conv_filters, dropout=dropout)
+        self.down2 = ConvBlockDownsample(n_conv_filters, n_conv_filters*2, dropout=dropout)
+        self.down3 = ConvBlockDownsample(n_conv_filters*2, n_conv_filters*4, dropout=dropout)
+        self.down4 = ConvBlockDownsample(n_conv_filters*4, n_conv_filters*8, dropout=dropout)
+
+        # Middle blocks
+        self.ground = DoubleConvBlock(n_conv_filters*8, n_conv_filters*16)
+
+        # Upsample blocks
+        self.up1 = ConvBlockUpsample(n_conv_filters*16, n_conv_filters*8, dropout=dropout)
+        self.up2 = ConvBlockUpsample(n_conv_filters*8, n_conv_filters*4, dropout=dropout)
+        self.up3 = ConvBlockUpsample(n_conv_filters*4, n_conv_filters*2, dropout=dropout)
+        self.up4 = ConvBlockUpsample(n_conv_filters*2, n_conv_filters, dropout=dropout)
+        # Final block
+        self.outc = OutConv(n_conv_filters, n_classes)
 
     def forward(self, x):
         x1, up1 = self.down1(x)
@@ -313,6 +367,7 @@ class UNet(nn.Module):
         x = self.up3(x, up2)
         x = self.up4(x, up1)
         logits = self.outc(x)
+        # self.model(x)
         return logits
 
 if __name__ == "__main__":
@@ -325,7 +380,7 @@ if __name__ == "__main__":
     # SinusoidalPositionEmbeddings
     # # n_classes is the number of probabilities you want to get per pixel
     net = UNet(n_channels=3, n_classes=1, dropout=0.1)
-    # data = torch.rand(1, 3, 572, 572)
-    # output = net(data)
+    data = torch.rand(1, 3, 572, 572)
+    output = net(data)
     # print("Shape of output: ", output.shape)
     print("UNet number of param: ", sum(p.numel() for p in net.parameters() if p.requires_grad)) #31037698 aka 31 milioni di trainable parameters
