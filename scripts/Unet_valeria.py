@@ -393,10 +393,10 @@ class MiddleBlock(nn.Module):
     def __init__(self, n_channels: int, time_channels: int=None,
                  activation_type: ActivationType = "ReLU", dropout: float = None):
         super().__init__()
-        self.res1 = DoubleConvBlock(n_channels, n_channels*2, activation_type=activation_type, dropout=dropout,
+        self.res1 = DoubleConvBlock(n_channels, n_channels, activation_type=activation_type, dropout=dropout,
                                       time_channels=time_channels)
-        self.attn = AttentionBlock(n_channels*2)
-        self.res2 = DoubleConvBlock(n_channels*2, n_channels*2, activation_type=activation_type, dropout=dropout,
+        self.attn = AttentionBlock(n_channels)
+        self.res2 = DoubleConvBlock(n_channels, n_channels, activation_type=activation_type, dropout=dropout,
                                       time_channels=time_channels)
 
     def forward(self, x: torch.Tensor, t: torch.Tensor):
@@ -479,11 +479,17 @@ class UNet(nn.Module):
         # Upsample blocks
         # self.up1 = ConvBlockUpsample(n_conv_filters * 16, n_conv_filters * 8, dropout=dropout,
         #                              time_channels=n_conv_filters * 4)
-        self.up2 = ConvBlockUpsample(n_conv_filters * 8, n_conv_filters * 4, dropout=dropout,
+        # self.up2 = ConvBlockUpsample(n_conv_filters * 8, n_conv_filters * 4, dropout=dropout,
+        #                              time_channels=n_conv_filters * 4, has_attn=is_attn[2])
+        # self.up3 = ConvBlockUpsample(n_conv_filters * 4, n_conv_filters * 2, dropout=dropout,
+        #                              time_channels=n_conv_filters * 4, has_attn=is_attn[1])
+        # self.up4 = ConvBlockUpsample(n_conv_filters * 2, n_conv_filters, dropout=dropout,
+        #                              time_channels=n_conv_filters * 4, has_attn=is_attn[0])
+        self.up2 = ConvBlockUpsample(n_conv_filters * 4, n_conv_filters * 2, dropout=dropout,
                                      time_channels=n_conv_filters * 4, has_attn=is_attn[2])
-        self.up3 = ConvBlockUpsample(n_conv_filters * 4, n_conv_filters * 2, dropout=dropout,
+        self.up3 = ConvBlockUpsample(n_conv_filters * 2, n_conv_filters, dropout=dropout,
                                      time_channels=n_conv_filters * 4, has_attn=is_attn[1])
-        self.up4 = ConvBlockUpsample(n_conv_filters * 2, n_conv_filters, dropout=dropout,
+        self.up4 = ConvBlockUpsample(n_conv_filters, n_conv_filters, dropout=dropout,
                                      time_channels=n_conv_filters * 4, has_attn=is_attn[0])
         # Final block
         self.outc = OutConv(n_conv_filters, n_classes)
