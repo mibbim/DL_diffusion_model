@@ -426,7 +426,7 @@ class UNet(nn.Module):
     """
 
     def __init__(self, n_channels: int = 3, n_classes: int = 1, n_conv_filters: int = 64,
-                 n_unet_blocks: int = 9, dropout: float = None, is_attn: Union[Tuple[bool, ...], List[int]] = (False, False, True)):
+                 n_unet_blocks: int = 9, dropout: float = None, is_attn: Union[Tuple[bool, ...], List[int]] = (False, True, True)):
         assert (
                 n_unet_blocks >= 0 and n_unet_blocks % 2 == 1), "n_unet_blocks must be an odd number"
         super(UNet, self).__init__()
