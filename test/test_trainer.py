@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from scripts.DiffusionModel import DiffusionModel
@@ -31,18 +32,17 @@ def test_train():
 
 
 def test_train_Unet_valeria():
-    trainer = Trainer(model=DiffusionModel(noise_predictor=UNet(3, 3)
-
-                                           ),
-                      out_path=script_dir / "out",
+    out_path = script_dir / "out" / "{now:%Y-%m-%d}_{now:%H:%M:%S}".format(now=datetime.now())
+    trainer = Trainer(model=DiffusionModel(noise_predictor=UNet(3, 3)),
+                      out_path=out_path,
                       )
     train_loader, test_loader = load_data_CSSD(train_batch_size=32,
-                                               test_batch_size=16,
+                                               test_batch_size=64,
                                                ratio_test=0.2)
-    trainer.train(n_epochs=10,
+    trainer.train(n_epochs=50,
                   train_dataloader=train_loader,
                   val_dataloader=test_loader,
-                  valid_each=2,
+                  valid_each=5,
                   )
 
     # for m in trainer.history.keys():
