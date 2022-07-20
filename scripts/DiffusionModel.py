@@ -9,7 +9,7 @@ from torch.optim.optimizer import Optimizer
 
 import torch
 import torch.nn as nn
-from .Unet import Generator
+from .Unet_valeria import UNet
 from .utils import default_device, Device, IDT
 from .noiseGenerator import NoiseGenerator
 
@@ -20,7 +20,7 @@ BetaSchedule = Literal["linear"]  # TypeVar("BetaSchedule")
 def default_model():
     """Returns default model used mainly for testing"""
     return DiffusionModel(
-        noise_predictor=Generator(1, 1),
+        noise_predictor=UNet(1, 1),
         # diffusion_steps_num=1000,
         evaluation_device=default_device,
     ).to(default_device)
