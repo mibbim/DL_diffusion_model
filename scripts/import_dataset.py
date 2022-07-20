@@ -76,6 +76,30 @@ def load_data_CSSD(train_batch_size, test_batch_size, ratio_test=0.20, verbose=F
 
     return train_loader, test_loader
 
+
+def load_data_CIFAR10(train_batch_size, test_batch_size, ratio_data=1, verbose=False):
+    # The output of torchvision datasets are PILImage images of range [0, 1].
+    # We transform them to Tensors of normalized range [-1, 1].
+
+    # transform = transforms.Compose(
+    #     [transforms.ToTensor(),
+    #      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+
+    train_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(), train=True,
+                                            download=True)
+    test_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(), train=False,
+                            download=True)
+
+    # Take only one part of the dataset
+    data_train_less = Subset(train_data, range(0, len(train_data) // ratio_data))
+    data_test_less = Subset(test_data, range(0, len(test_data) // ratio_data))
+
+    train_loader = DataLoader(data_train_less, batch_size=train_batch_size, shuffle=True)
+    test_loader = DataLoader(data_test_less, batch_size=test_batch_size, shuffle=True)
+
+    return train_loader, test_loader
+
 # How to use: 
 # data_train, data_test = load_data(train_batch_size=32, test_batch_size=32, ratio_data=100)
 
