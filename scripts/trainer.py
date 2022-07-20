@@ -18,6 +18,7 @@ from .performance_meter import AverageMeter
 from .utils import default_device, Device
 
 from torch.utils.tensorboard import SummaryWriter
+from torch import Tensor
 
 optimizers_dict = {"Adam": torch.optim.Adam}
 script_dir = Path(__file__).resolve().parent
@@ -30,9 +31,19 @@ class MetricDumper:
                  ):
         self.tb_writer = SummaryWriter(log_dir=str(log_dir / "tb"))
 
-    def dump_scalars(self, scalar_dict: Dict[str, Tuple[int, float]]):
+    def dump_scalars(self, scalar_dict: Dict[str, Tuple[int, float]]) -> None:
+        """
+        :param scalar_dict: {scalar_tag : (step, value)}
+        """
         for k, (step, v) in scalar_dict.items():
             self.tb_writer.add_scalar(tag=k, scalar_value=v, global_step=step)
+
+    def dump_image(self, image_dict: Dict[str, Tuple[int, Tensor]]) -> None:
+        """
+        :param image_dict: {image_tag : (step, image)}
+        """
+        for k, (step, v) in image_dict.items():
+            self.tb_writer.add_image(tag=k, img_tensor=v, global_step=step)
 
 
 class Trainer:
@@ -78,7 +89,11 @@ class Trainer:
 
         average_meter = AverageMeter(["train_mse"])
         for epoch in epochs:
-            for x, y in train_dataloader:
+            for data in train_dataloader:
+                if isinstance(data, tuple):
+                    x, y = data
+                else:
+                    x = data
                 x = x.to(device)  # Batch of Images
                 loss = self.model.train_step(x, self.opt, loss_function)
                 average_meter.update({"train_mse": loss.item()}, n=x.shape[0])
@@ -101,15 +116,40 @@ class Trainer:
             for epoch_and_val in v_list:
                 self.dumper.dump_scalars({k: epoch_and_val})
 
-    def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
+    def _eval_val_loss(self,
+                       data_loader: DataLoader,
+                       validation_metric: Loss,
+                       epoch: int):
         validation_meter = AverageMeter(["val_mse"])
         best_loss = torch.inf
-        for x, y in data_loader:
+        for data in data_loader:
+            if isinstance(data, tuple):
+                x, y = data
+            else:
+                x = data
             x = x.to(self.device)
             val_loss = self.model.val_step(x, validation_metric)
             if val_loss.item() < best_loss:
                 self.store_state(epoch)
             validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
+        return validation_meter
+
+    def _eval_img_reconstruction(self,
+                                 data_loader: DataLoader,
+                                 epoch: int):
+        x, _ = next(iter(data_loader))
+        x, noisy, denoised = self.model.forward_and_backward_img(x)
+
+    def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
+        # validation_meter = AverageMeter(["val_mse"])
+        # best_loss = torch.inf
+        # for x, y in data_loader:
+        #     x = x.to(self.device)
+        #     val_loss = self.model.val_step(x, validation_metric)
+        #     if val_loss.item() < best_loss:
+        #         self.store_state(epoch)
+        #     validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
+        validation_meter = self._eval_val_loss(data_loader, validation_metric, epoch)
         self.history["val_loss"].append((epoch, validation_meter.metrics["val_mse"]["avg"]))
         self.dump_history()
         self._clear_history()
