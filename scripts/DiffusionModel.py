@@ -71,6 +71,15 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
         optimizer.step()
         return loss
 
+    def forward_and_backward_img(self, x: IDT):
+        if x.device != self.device:
+            x = x.to(self.device)
+        noisy_x, _, _ = self._noise_generator.add_noise(x, torch.tensor(self.max_diff_steps,
+                                                                        dtype=torch.long,
+                                                                        device=self.device))
+        denoised_x = self.generate_from(noisy_x)
+        return x, noisy_x, denoised_x
+
     @torch.no_grad()
     def val_step(self, x: IDT, validation_metric):
         noisy_x, noise, t = self._noise_generator.add_noise(x)
@@ -80,7 +89,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
 
     @torch.no_grad()
     def _backward_step(self, x, t):
-        pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(x.size[0])],
+        pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(x.size()[0])],
                                                            dtype=torch.long))
         t = torch.tensor(t, dtype=torch.long, device=self.device, requires_grad=False)
         beta_t = self._noise_generator.beta.get_betas_t(t)
@@ -94,6 +103,8 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
 
     @torch.no_grad()
     def generate_from(self, x):
+        if x.device != self.device:
+            x.to(self.device)
         for t in reversed(range(self.max_diff_steps)):
             x = self._backward_step(x, t)
         return x
@@ -102,4 +113,4 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     def generate(self,
                  n: int = 1,
                  image_dim: Tuple[int, int] = (28, 28)):
-        return self.generate_from(torch.randn(n, 1, *image_dim))
+        return self.generate_from(torch.randn(n, 1, *image_dim, device=default_device))
