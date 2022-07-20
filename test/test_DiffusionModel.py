@@ -52,6 +52,15 @@ def test_generate():
     ToPILImage()(res[0]).show()
 
 
+def test_fwd_and_bkwd():
+    train, _ = load_MNIST(2, 1, 1000)
+    x, _ = next(iter(train))
+    model = default_model()
+    x, noisy, denoised = model.forward_and_backward_img(x)
+    img = torch.cat((x, noisy, denoised))
+    ToPILImage()(img).show()
+
+
 if __name__ == "__main__":
     from torchvision.transforms import ToPILImage
     from scripts.import_dataset import load_MNIST
@@ -60,6 +69,7 @@ if __name__ == "__main__":
     from scripts.Unet import Generator
     from scripts.utils import default_device
 
-    test_generate()
-    test_noise()
-    test_trainstep()
+    # test_generate()
+    # test_noise()
+    # test_trainstep()
+    test_fwd_and_bkwd()
