@@ -4,12 +4,13 @@ used in DiffusionModel to predict the noise
 """
 import torch.nn as nn
 import torch
-import torch.nn.functional as F
+from torchvision.transforms import CenterCrop
 from typing import List, Literal
-#from torch.nn.parameter import Parameter # import Parameter to create custom activations with learnable parameters
+# from torch.nn.parameter import Parameter # import Parameter to create custom activations with learnable parameters
 import math
 
 ActivationType = Literal["ReLU", "LeakyReLU", "PReLU", "SiLU", "ELU", "none"]
+
 
 # Custom Activation function
 class ActivationFunc(nn.Module):
@@ -22,6 +23,7 @@ class ActivationFunc(nn.Module):
     * `activation_type`: ActivationType Literal
         the name of the custom activation function.
     """
+
     def __init__(self, activation_type: ActivationType = "ReLU"):
         super().__init__()
         # # initialize alpha parameter for ParametricReLU and ELU
@@ -32,25 +34,25 @@ class ActivationFunc(nn.Module):
         # self.alpha.requiresGrad = True # set requiresGrad to true!
 
         if activation_type == 'ReLU':
-            self.activation = nn.ReLU() # Should I use inplace=True?
+            self.activation = nn.ReLU()  # Should I use inplace=True?
         elif activation_type == 'LeakyReLU':
-            self.activation = nn.LeakyReLU() # 0.01 default parameter
-        elif activation_type == 'PReLU': # to access the alpha parameter learnt use activation.weight
+            self.activation = nn.LeakyReLU()  # 0.01 default parameter
+        elif activation_type == 'PReLU':  # to access the alpha parameter learnt use activation.weight
             self.activation = nn.PReLU()
-            #self.activation = nn.PReLU(init=alpha)
+            # self.activation = nn.PReLU(init=alpha)
         elif activation_type == 'SiLU':
             self.activation = nn.SiLU()
-        elif activation_type == 'ELU': # Exponential Linear Unit (computationally more expensive than ReLU)
+        elif activation_type == 'ELU':  # Exponential Linear Unit (computationally more expensive than ReLU)
             self.activation = nn.ELU()
-            #self.activation = nn.ELU(alpha=alpha)
+            # self.activation = nn.ELU(alpha=alpha)
         elif activation_type == 'none':
             self.activation = lambda x: x
         else:
             raise ValueError('Unknown activation type')
-        
 
     def forward(self, x):
         return self.activation(x)
+
 
 # Time Embedding position encoder
 class SinusoidalPositionEmbeddings(nn.Module):
@@ -75,23 +77,26 @@ class SinusoidalPositionEmbeddings(nn.Module):
         the name of the custom activation function.
 
     """
+
     def __init__(self, dim, activation_type: ActivationType = "ReLU"):
         super().__init__()
-        self.dim = dim #is the number of dimensions in the embedding
+        self.dim = dim  # is the number of dimensions in the embedding
 
         self.mlp = nn.Sequential(
             nn.Linear(self.dim // 4, self.dim),
             ActivationFunc(activation_type),
             nn.Linear(self.dim, self.dim)
-            )
+        )
 
     def forward(self, t: torch.Tensor):
         half_dim = self.dim // 8
         emb = math.log(10_000) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim, device=t.device) * -emb)
         emb = t[:, None] * emb[None, :]
-        emb = torch.cat((emb.sin(), emb.cos()), dim=1) #Concatenates the given sequence of seq tensors in the given dimension
+        emb = torch.cat((emb.sin(), emb.cos()),
+                        dim=1)  # Concatenates the given sequence of seq tensors in the given dimension
         return self.mlp(emb)
+
 
 # Double convolutional layer for Unet
 class DoubleConvBlock(nn.Module):
@@ -113,21 +118,27 @@ class DoubleConvBlock(nn.Module):
             the number channels in the time step ($t$) embeddings (time dim).
 
     """
-    def __init__(self, in_channels: int, out_channels: int, activation_type: ActivationType = "ReLU", dropout: float=None, time_channels=None):
+
+    def __init__(self, in_channels: int, out_channels: int,
+                 activation_type: ActivationType = "ReLU", dropout: float = None,
+                 time_channels=None):
         super().__init__()
 
         # First convolution layer and batch normalization with optional dropout
         layers = nn.ModuleList([
-            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, bias=False), # stride=1,padding=0,bias set false since usage of BatchNorm
-            nn.BatchNorm2d(out_channels), #dimensionality of the incoming data
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3,
+                      bias=False, padding=(1, 1)),
+            # stride=1,padding=0,bias set false since usage of BatchNorm
+            nn.BatchNorm2d(out_channels),  # dimensionality of the incoming data
             ActivationFunc(activation_type)])
         if dropout:
-            layers+= nn.ModuleList([nn.Dropout(dropout),])
+            layers += nn.ModuleList([nn.Dropout(dropout), ])
         self.conv_block1 = nn.Sequential(*layers)
 
         # Second convolution layer and batch normalization
         self.conv_block2 = nn.Sequential(
-            nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, bias=False),
+            nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3,
+                      bias=False, padding=(1, 1)),
             nn.BatchNorm2d(out_channels),
             ActivationFunc(activation_type))
 
@@ -138,7 +149,6 @@ class DoubleConvBlock(nn.Module):
             else None
         )
 
-
     def forward(self, data: torch.Tensor, t: torch.Tensor):
         """
         * `data` has shape `[batch_size, in_channels, height, width]`
@@ -146,14 +156,16 @@ class DoubleConvBlock(nn.Module):
         """
         # First convolution layer 
         x = self.conv_block1(data)
-        
+
         # Add time embeddings
         if self.time_emb:
             t = self.time_emb(t)
             # Add time embeddings
-            x += t[:, :, None, None]
+            # x += t[:, :, None, None]
+            x = x + t[:, :, None, None]
 
         return self.conv_block2(x)
+
 
 # Module for downsampling
 class ConvBlockDownsample(nn.Module):
@@ -179,26 +191,32 @@ class ConvBlockDownsample(nn.Module):
             data already processed with max-polling, ready to be used for another downsampling layer.
 
     """
-    def __init__(self, in_channels: int, out_channels: int, dropout: float=None, time_channels: int = None):
-        super().__init__()
-        self.conv = DoubleConvBlock(in_channels,out_channels, dropout=dropout, time_channels=time_channels)
-        self.downsample = nn.MaxPool2d(kernel_size=2) #the stride default value is kernel_size!
 
-    def forward(self, data: torch.Tensor, upsample_list: List[torch.Tensor], t: torch.Tensor,):
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = None,
+                 time_channels: int = None):
+        super().__init__()
+        self.conv = DoubleConvBlock(in_channels, out_channels, dropout=dropout,
+                                    time_channels=time_channels)
+        self.downsample = nn.MaxPool2d(kernel_size=2)  # the stride default value is kernel_size!
+
+    def forward(self, data: torch.Tensor, upsample_list: List[torch.Tensor], t: torch.Tensor, ):
         # Double convolution layer
         out_for_upsample = self.conv(data, t)
 
-        # Resize data to avoid loss in MaxPooling
-        if out_for_upsample.size(dim=2)%2 != 0:
-            out_for_upsample = nn.ReplicationPad2d(0,1,0,1) #padding_left,padding_right,padding_top,padding_bottom
         # Add to list
         upsample_list.append(out_for_upsample)
+
+        # Resize data to avoid loss in MaxPooling
+        if out_for_upsample.size(dim=2) % 2 != 0:
+            out_for_upsample = nn.ReplicationPad2d((0, 1, 0, 1))(
+                out_for_upsample)  # padding_left,padding_right,padding_top,padding_bottom
 
         # MaxPooling with stride=2, kernel=2
         out = self.downsample(out_for_upsample)
 
         # Return out and out_for_upsample as a List
         return out, upsample_list
+
 
 # Module for upsampling
 class ConvBlockUpsample(nn.Module):
@@ -216,12 +234,17 @@ class ConvBlockUpsample(nn.Module):
     * `time_channels`: number
             the number channels in the time step ($t$) embeddings (time dim).
     """
-    def __init__(self, in_channels: int, out_channels: int, dropout: float=None, time_channels: int=None):
+
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = None,
+                 time_channels: int = None):
         super().__init__()
-        self.upsample = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=2, stride=2)
-        self.conv = DoubleConvBlock(in_channels,out_channels, dropout=dropout, time_channels=time_channels)
-    
-    def forward(self, data: torch.Tensor, data_from_downsample: List[torch.Tensor], t: torch.Tensor):
+        self.upsample = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels,
+                                           kernel_size=2, stride=2)
+        self.conv = DoubleConvBlock(in_channels, out_channels, dropout=dropout,
+                                    time_channels=time_channels)
+
+    def forward(self, data: torch.Tensor, data_from_downsample: List[torch.Tensor],
+                t: torch.Tensor):
         # Upsample
         out = self.upsample(data)
 
@@ -229,20 +252,29 @@ class ConvBlockUpsample(nn.Module):
         # data_from_downsample has dimension ch x H x W
         # with H > h, W > w
         h, w = out.shape[2], out.shape[3]
-        if h%2 != 0:
-            data = nn.ReplicationPad2d(0,1,0,1) #padding_left,padding_right,padding_top,padding_bottom
+
+        if h % 2 != 0:
+            # padding_left,padding_right,padding_top,padding_bottom
+            out = nn.ReplicationPad2d((0, 1, 0, 1))(out)
+
         data_previous = data_from_downsample.pop()
         H, W = data_previous.shape[2], data_previous.shape[3]
 
         # Do a center crop of data_from_downsample 
         # (starting from H//2, W//2, the center pixel of the larger image)
-        cropped_data_from_downsample = data_previous[:, :, H//2-h//2 : H//2+(h//2 + h%2), W//2-w//2 : W//2+(w//2 + w%2)]
-        out = torch.cat([out, cropped_data_from_downsample], dim=1)
+        if data_previous.shape != out.shape:
+            cropper = CenterCrop((out.shape[-2], out.shape[-1]))
+            data_previous = cropper(data_previous)
+            # data_previous = data_previous[:, :,
+            #                 H // 2 - h // 2: H // 2 + (h // 2 + h % 2),
+            #                 W // 2 - w // 2: W // 2 + (w // 2 + w % 2)]
+        out = torch.cat([out, data_previous], dim=1)
 
         # Double convolution layer
-        return self.conv(out,t)
+        return self.conv(out, t)
 
-#Final convolution layer with 1x1 filter
+
+# Final convolution layer with 1x1 filter
 class OutConv(nn.Module):
     """
     ### Final Unet layer with conv 1x1:
@@ -254,12 +286,14 @@ class OutConv(nn.Module):
             the number of probabilities you want to get per pixel (num of output image's channels)
     
     """
+
     def __init__(self, in_channels, out_channels: int):
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
         return self.conv(x)
+
 
 class UNet(nn.Module):
     """
@@ -278,8 +312,11 @@ class UNet(nn.Module):
             dropout rate. Use 0.1 as paper https://arxiv.org/pdf/2006.11239.pdf suggested - implementation https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py)
 
     """
-    def __init__(self, n_channels: int=3, n_classes: int=1, n_conv_filters: int=64, n_unet_blocks: int=9, dropout: float=None):
-        assert (n_unet_blocks >= 0 and n_unet_blocks%2 == 1), "n_unet_blocks must be an odd number"
+
+    def __init__(self, n_channels: int = 3, n_classes: int = 1, n_conv_filters: int = 64,
+                 n_unet_blocks: int = 9, dropout: float = None):
+        assert (
+                n_unet_blocks >= 0 and n_unet_blocks % 2 == 1), "n_unet_blocks must be an odd number"
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -310,19 +347,30 @@ class UNet(nn.Module):
         self.time_emb = SinusoidalPositionEmbeddings(n_conv_filters * 4)
 
         # Downsample blocks
-        self.down1 = ConvBlockDownsample(n_channels, n_conv_filters, dropout=dropout, time_channels= n_conv_filters * 4)
-        self.down2 = ConvBlockDownsample(n_conv_filters, n_conv_filters*2, dropout=dropout, time_channels= n_conv_filters * 4)
-        self.down3 = ConvBlockDownsample(n_conv_filters*2, n_conv_filters*4, dropout=dropout, time_channels= n_conv_filters * 4)
-        self.down4 = ConvBlockDownsample(n_conv_filters*4, n_conv_filters*8, dropout=dropout, time_channels= n_conv_filters * 4)
+        self.down1 = ConvBlockDownsample(n_channels, n_conv_filters, dropout=dropout,
+                                         time_channels=n_conv_filters * 4)
+        self.down2 = ConvBlockDownsample(n_conv_filters, n_conv_filters * 2, dropout=dropout,
+                                         time_channels=n_conv_filters * 4)
+        self.down3 = ConvBlockDownsample(n_conv_filters * 2, n_conv_filters * 4, dropout=dropout,
+                                         time_channels=n_conv_filters * 4)
+        self.down4 = ConvBlockDownsample(n_conv_filters * 4, n_conv_filters * 8, dropout=dropout,
+                                         time_channels=n_conv_filters * 4)
 
         # Middle blocks
-        self.ground = DoubleConvBlock(n_conv_filters*8, n_conv_filters*16,dropout=dropout, time_channels= n_conv_filters * 4)
+        # self.ground = DoubleConvBlock(n_conv_filters * 8, n_conv_filters * 16, dropout=dropout,
+        #                               time_channels=n_conv_filters * 4)
+        self.ground = DoubleConvBlock(n_conv_filters * 4, n_conv_filters * 8, dropout=dropout,
+                                      time_channels=n_conv_filters * 4)
 
         # Upsample blocks
-        self.up1 = ConvBlockUpsample(n_conv_filters*16, n_conv_filters*8, dropout=dropout, time_channels= n_conv_filters * 4)
-        self.up2 = ConvBlockUpsample(n_conv_filters*8, n_conv_filters*4, dropout=dropout, time_channels= n_conv_filters * 4)
-        self.up3 = ConvBlockUpsample(n_conv_filters*4, n_conv_filters*2, dropout=dropout, time_channels= n_conv_filters * 4)
-        self.up4 = ConvBlockUpsample(n_conv_filters*2, n_conv_filters, dropout=dropout, time_channels= n_conv_filters * 4)
+        self.up1 = ConvBlockUpsample(n_conv_filters * 16, n_conv_filters * 8, dropout=dropout,
+                                     time_channels=n_conv_filters * 4)
+        self.up2 = ConvBlockUpsample(n_conv_filters * 8, n_conv_filters * 4, dropout=dropout,
+                                     time_channels=n_conv_filters * 4)
+        self.up3 = ConvBlockUpsample(n_conv_filters * 4, n_conv_filters * 2, dropout=dropout,
+                                     time_channels=n_conv_filters * 4)
+        self.up4 = ConvBlockUpsample(n_conv_filters * 2, n_conv_filters, dropout=dropout,
+                                     time_channels=n_conv_filters * 4)
         # Final block
         self.outc = OutConv(n_conv_filters, n_classes)
 
@@ -331,22 +379,23 @@ class UNet(nn.Module):
         * `x` has shape `[batch_size, in_channels, height, width]`
         * `t` has shape `[batch_size]`
         """
-
+        img_size = (x.shape[-2], x.shape[-1])
         # Get time-step embeddings
         t = self.time_emb(t)
         up = list()
         x1, up = self.down1(x, up, t)
         x2, up = self.down2(x1, up, t)
-        x3, up = self.down3(x2, up, t)
-        x4, up = self.down4(x3, up, t)
-        x5 = self.ground(x4, t)
-        x = self.up1(x5, up, t)
+        x, up = self.down3(x2, up, t)
+        # x4, up = self.down4(x3, up, t)
+        x = self.ground(x, t)
+        # x = self.up1(x5, up, t)
         x = self.up2(x, up, t)
         x = self.up3(x, up, t)
         x = self.up4(x, up, t)
-        logits = self.outc(x)
-        # self.model(x)
-        return logits
+        x = self.outc(x)
+        x = CenterCrop(img_size)(x)
+        return x
+
 
 if __name__ == "__main__":
     # m = nn.MaxPool2d(kernel_size=2)
@@ -361,16 +410,16 @@ if __name__ == "__main__":
     # Let's see it in action on dummy data:
     # A dummy batch of 1 3-channel 572px images
     x = torch.randn(1, 3, 572, 572)
-    
+
     # 't' - what timestep are we on
     t = torch.tensor([50], dtype=torch.long)
-    
+
     # Define the unet model
     unet = UNet(dropout=0.5)
-    
+
     # The foreward pass (takes both x and t)
     model_output = unet(x, t)
-    
+
     # The output shape matches the input.
     print("Shape of output: ", model_output.shape)
 
@@ -378,4 +427,4 @@ if __name__ == "__main__":
     # data = torch.rand(1, 3, 572, 572)
     # output = net(data)
     # print("Shape of output: ", output.shape)
-    #print("UNet number of param: ", sum(p.numel() for p in unet.parameters() if p.requires_grad)) #31876673 aka 31 milioni di trainable parameters
+    # print("UNet number of param: ", sum(p.numel() for p in unet.parameters() if p.requires_grad)) #31876673 aka 31 milioni di trainable parameters
