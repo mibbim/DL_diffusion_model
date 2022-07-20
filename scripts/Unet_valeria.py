@@ -122,7 +122,7 @@ class DoubleConvBlock(nn.Module):
             nn.BatchNorm2d(out_channels), #dimensionality of the incoming data
             ActivationFunc(activation_type)])
         if dropout:
-            layers+= nn.ModuleList(nn.Dropout(dropout))
+            layers+= nn.ModuleList([nn.Dropout(dropout),])
         self.conv_block1 = nn.Sequential(*layers)
 
         # Second convolution layer and batch normalization
@@ -366,16 +366,16 @@ if __name__ == "__main__":
     t = torch.tensor([50], dtype=torch.long)
     
     # Define the unet model
-    unet = UNet()
+    unet = UNet(dropout=0.5)
     
     # The foreward pass (takes both x and t)
-    #model_output = unet(x, t)
+    model_output = unet(x, t)
     
     # The output shape matches the input.
-    #print("Shape of output: ", model_output.shape)
+    print("Shape of output: ", model_output.shape)
 
     # net = UNet(n_channels=3, n_classes=1, dropout=0.5)
     # data = torch.rand(1, 3, 572, 572)
     # output = net(data)
     # print("Shape of output: ", output.shape)
-    print("UNet number of param: ", sum(p.numel() for p in unet.parameters() if p.requires_grad)) #31876673 aka 31 milioni di trainable parameters
+    #print("UNet number of param: ", sum(p.numel() for p in unet.parameters() if p.requires_grad)) #31876673 aka 31 milioni di trainable parameters
