@@ -59,7 +59,7 @@ def test_train():
     ToPILImage()(img).show()
 
 
-def test_train_Unet_valeria():
+def test_train_Unet_valeria(n_epochs=10,valid_each=1,train_batch_size=32,test_batch_size=32, ratio_data=100, n_time_steps = n_steps, learning_rate=2e-4, dropout=None):
     # out_path = script_dir / "out" / "{now:%Y-%m-%d}_{now:%H:%M:%S}".format(now=datetime.now())
     # trainer = Trainer(model=DiffusionModel(noise_predictor=UNet(3, 3)),
     #                   out_path=out_path,
@@ -76,23 +76,23 @@ def test_train_Unet_valeria():
         now=datetime.now())
     noise_generator = NoiseGenerator(beta=LinearVarianceSchedule(beta_min,
                                                                  beta_max,
-                                                                 n_steps,
+                                                                 n_time_steps,
                                                                  device=device))
-    model = DiffusionModel(noise_predictor=UNet_valeria(n_classes=3).to(device), #is_attn=(False, False, True), dropout=0.5
+    model = DiffusionModel(noise_predictor=UNet_valeria(n_classes=3, dropout=dropout).to(device), #is_attn=(False, False, True), dropout=0.1
                            noise_generator=noise_generator,
                            )
     trainer = Trainer(model=model,
                       optimizer="AdamW",
-                      learning_rate=2e-4,
+                      learning_rate=learning_rate,
                       out_path=out_path)
 
-    train_loader, test_loader = load_data_CIFAR10(train_batch_size=32,
-                                                  test_batch_size=32,
-                                                  ratio_data=100, )
-    trainer.train(n_epochs=10,
+    train_loader, test_loader = load_data_CIFAR10(train_batch_size=train_batch_size,
+                                                  test_batch_size=test_batch_size,
+                                                  ratio_data=ratio_data, )
+    trainer.train(n_epochs=n_epochs,
                   train_dataloader=train_loader,
                   val_dataloader=test_loader,
-                  valid_each=1,
+                  valid_each=valid_each,
                   )
 
     x, y = next(iter(test_loader))
