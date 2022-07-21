@@ -5,6 +5,7 @@ This file contains the trainer class
 from __future__ import annotations
 
 from typing import Literal, Dict, Tuple
+
 from tqdm.auto import trange
 from pathlib import Path
 
@@ -20,7 +21,8 @@ from .utils import default_device, Device
 from torch.utils.tensorboard import SummaryWriter
 from torch import Tensor
 
-optimizers_dict = {"Adam": torch.optim.Adam}
+optimizers_dict = {"Adam": torch.optim.Adam,
+                   "AdamW": torch.optim.AdamW}
 script_dir = Path(__file__).resolve().parent
 
 
@@ -49,8 +51,8 @@ class MetricDumper:
 class Trainer:
     def __init__(self,
                  model: DiffusionModel = default_model(),
-                 optimizer: Literal["Adam"] | None = "Adam",
-                 learning_rate: float | None = 1e-3,
+                 optimizer: Literal["Adam", "AdamW"] | None = "AdamW",
+                 learning_rate: float | None = 2e-4,
                  metric_dumper: MetricDumper | None = None,
                  device: torch.device | None = default_device,
                  out_path: Path | None = None
@@ -61,13 +63,13 @@ class Trainer:
 
         if metric_dumper is None:
             metric_dumper = MetricDumper(log_dir=self.out_path)
-
-        self.model = model
+        self.device = device
+        self.model = model.to(device)
         self.opt = optimizers_dict[optimizer](params=model.parameters(), lr=learning_rate)
         self.history = {"train_loss": [],
                         "val_loss": []}
         self.dumper = metric_dumper
-        self.device = device
+
         # self.lr = learning_rate
 
     def train(self,
@@ -90,13 +92,19 @@ class Trainer:
         average_meter = AverageMeter(["train_mse"])
         for epoch in epochs:
             for data in train_dataloader:
-                if isinstance(data, tuple):
+                if isinstance(data, (tuple, list)):
                     x, y = data
                 else:
                     x = data
                 x = x.to(device)  # Batch of Images
-                loss = self.model.train_step(x, self.opt, loss_function)
+                xt, noise, t = self.model._noise_generator.add_noise(x)
+                pred_noise = self.model.predict_noise(xt, t)
+                # loss = self.model.train_step(x, self.opt, loss_function)
+                loss = loss_function(noise, pred_noise)
                 average_meter.update({"train_mse": loss.item()}, n=x.shape[0])
+                self.opt.zero_grad()
+                loss.backward()
+                self.opt.step()
 
             self.history["train_loss"].append((epoch, average_meter.metrics["train_mse"]["avg"]))
             average_meter.reset()
@@ -123,7 +131,7 @@ class Trainer:
         validation_meter = AverageMeter(["val_mse"])
         best_loss = torch.inf
         for data in data_loader:
-            if isinstance(data, tuple):
+            if isinstance(data, (tuple, list)):
                 x, y = data
             else:
                 x = data
