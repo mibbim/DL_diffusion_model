@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from typing import TypeVar, Iterator, Literal, Tuple
 from torch.nn.parameter import Parameter
-from torch.optim.optimizer import Optimizer
 
 import torch
 import torch.nn as nn
@@ -58,18 +57,23 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
         return self._noise_predictor.parameters()
 
-    def train_step(self,
-                   x: IDT,
-                   optimizer: Optimizer,
-                   loss_fun: Loss,
-                   ):
-        noisy_x, noise, t = self._noise_generator.add_noise(x)
-        predicted_noise = self._noise_predictor(x, t)
-        loss = loss_fun(noise, predicted_noise)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        return loss
+    def predict_noise(self, x: IDT, t: torch.Tensor):
+        return self._noise_predictor(x, t)
+
+    # def train_step(self,
+    #                x: IDT,
+    #                optimizer: Optimizer,
+    #                loss_fun: Loss,
+    #                t=None
+    #                ):
+    #     noisy_x, noise, t = self._noise_generator.add_noise(x, t)
+    #     predicted_noise = self.predict_noise(x, t)
+    #     return noise, predicted_noise
+        # loss = loss_fun(noise.float(), predicted_noise)
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
+        # return loss
 
     def forward_and_backward_img(self, x: IDT):
         if x.device != self.device:
@@ -90,7 +94,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     @torch.no_grad()
     def _backward_step(self, x, t):
         pred_noise = self._noise_predictor(x, torch.tensor([t for _ in range(x.size()[0])],
-                                                           dtype=torch.long))
+                                                           dtype=torch.long, device=x.device))
         t = torch.tensor(t, dtype=torch.long, device=self.device, requires_grad=False)
         beta_t = self._noise_generator.beta.get_betas_t(t)
         alpha_t = self._noise_generator.beta.get_alphas_t(t)
@@ -105,6 +109,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     def generate_from(self, x):
         if x.device != self.device:
             x.to(self.device)
+
         for t in reversed(range(self.max_diff_steps)):
             x = self._backward_step(x, t)
         return x
