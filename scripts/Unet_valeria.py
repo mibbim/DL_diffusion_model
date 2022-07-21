@@ -415,9 +415,9 @@ class UNet(nn.Module):
             the number of input image's channels.
     * `n_classes`: number, default is 1 (regression problem)
             the number of probabilities you want to get per pixel aka  the number of output image's channels.
-    * `n_conv_filters`: number, default is 64
+    * `n_conv_filters`: number, default is 32
             the number of convolutional filters for starting UNet block.
-    * `n_unet_blocks`: number, default is 9
+    * `n_unet_blocks`: number, default is 7
             the number of double convolutional blocks.
     * `dropout`: number, default is None 
             dropout rate. Use 0.1 as paper https://arxiv.org/pdf/2006.11239.pdf suggested - implementation https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py)
@@ -425,8 +425,8 @@ class UNet(nn.Module):
             List of booleans that indicate whether to use attention at each resolution
     """
 
-    def __init__(self, n_channels: int = 3, n_classes: int = 1, n_conv_filters: int = 64,
-                 n_unet_blocks: int = 9, dropout: float = None, is_attn: Union[Tuple[bool, ...], List[int]] = (False, True, True)):
+    def __init__(self, n_channels: int = 3, n_classes: int = 1, n_conv_filters: int = 32,
+                 n_unet_blocks: int = 7, dropout: float = None, is_attn: Union[Tuple[bool, ...], List[int]] = (False, True, True)):
         assert (
                 n_unet_blocks >= 0 and n_unet_blocks % 2 == 1), "n_unet_blocks must be an odd number"
         super(UNet, self).__init__()

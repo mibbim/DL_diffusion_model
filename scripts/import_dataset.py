@@ -45,7 +45,7 @@ def load_MNIST(train_batch_size, test_batch_size, ratio_data=1, verbose=False):
     test_loader = DataLoader(data_test_less, batch_size=test_batch_size, shuffle=True)
 
     return train_loader, test_loader
-
+                                                                                                                                                        
 
 def load_data_CSSD(train_batch_size, test_batch_size, ratio_test=0.20, verbose=False):
     """
