@@ -5,7 +5,7 @@ import torch
 from torchvision.transforms import ToPILImage
 
 from scripts.DiffusionModel import DiffusionModel
-from scripts.Unet_valeria import UNet
+from scripts.Unet_valeria import UNet as UNet_valeria
 from scripts.aiaiart_unet import UNet as Ai_unet
 from scripts.noiseGenerator import NoiseGenerator
 from scripts.trainer import Trainer
@@ -60,18 +60,47 @@ def test_train():
 
 
 def test_train_Unet_valeria():
-    out_path = script_dir / "out" / "{now:%Y-%m-%d}_{now:%H:%M:%S}".format(now=datetime.now())
-    trainer = Trainer(model=DiffusionModel(noise_predictor=UNet(3, 3)),
-                      out_path=out_path,
-                      )
-    train_loader, test_loader = load_data_CSSD(train_batch_size=64,
-                                               test_batch_size=128,
-                                               ratio_test=0.2)
-    trainer.train(n_epochs=50,
+    # out_path = script_dir / "out" / "{now:%Y-%m-%d}_{now:%H:%M:%S}".format(now=datetime.now())
+    # trainer = Trainer(model=DiffusionModel(noise_predictor=UNet(3, 3)),
+    #                   out_path=out_path,
+    #                   )
+    # train_loader, test_loader = load_data_CSSD(train_batch_size=64,
+    #                                            test_batch_size=128,
+    #                                            ratio_test=0.2)
+    # trainer.train(n_epochs=50,
+    #               train_dataloader=train_loader,
+    #               val_dataloader=test_loader,
+    #               valid_each=5,
+    #               )
+    out_path = script_dir / "out" / "{now:%Y-%m-%d}_{now:%H:%M:%S}".format(
+        now=datetime.now())
+    noise_generator = NoiseGenerator(beta=LinearVarianceSchedule(beta_min,
+                                                                 beta_max,
+                                                                 n_steps,
+                                                                 device=device))
+    model = DiffusionModel(noise_predictor=UNet_valeria(n_classes=10).to(device),
+                           noise_generator=noise_generator,
+                           )
+    trainer = Trainer(model=model,
+                      optimizer="AdamW",
+                      learning_rate=2e-4,
+                      out_path=out_path)
+
+    train_loader, test_loader = load_data_CIFAR10(train_batch_size=32,
+                                                  test_batch_size=32,
+                                                  ratio_data=100, )
+    trainer.train(n_epochs=10,
                   train_dataloader=train_loader,
                   val_dataloader=test_loader,
-                  valid_each=5,
+                  valid_each=1,
                   )
+
+    x, y = next(iter(test_loader))
+    x = x.to(device)
+    noised_x, noise, t = model._noise_generator.add_noise(x, torch.tensor(99, dtype=torch.long,
+                                                                          device=device))
+    img = model.generate_from(noised_x)[0]
+    ToPILImage()(img).show()
 
     # for m in trainer.history.keys():
     #     plot_single(trainer.history, m)
@@ -80,5 +109,5 @@ def test_train_Unet_valeria():
 
 
 if __name__ == "__main__":
-    test_train()
-    # test_train_Unet_valeria()
+    #test_train()
+    test_train_Unet_valeria()
