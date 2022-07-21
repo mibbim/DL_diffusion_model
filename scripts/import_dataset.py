@@ -89,7 +89,7 @@ def load_data_CIFAR10(train_batch_size, test_batch_size, ratio_data=1, verbose=F
     train_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(), train=True,
                                             download=True)
     test_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(), train=False,
-                            download=True)
+                                            download=True)
 
     # Take only one part of the dataset
     data_train_less = Subset(train_data, range(0, len(train_data) // ratio_data))
