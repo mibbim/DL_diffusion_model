@@ -265,9 +265,7 @@ class ConvBlockDownsample(nn.Module):
         else:
             self.attn = nn.Identity()
 
-    def forward(self, x: Tuple[torch.Tensor], t: torch.Tensor):
-        # Unpack the tuple
-        (data, upsample_list) = x
+    def forward(self, data: torch.Tensor, upsample_list: List[torch.Tensor], t: torch.Tensor):
         # Double convolution layer with attention block
         out_for_upsample = self.conv(data, t)
         out_for_upsample = self.attn(out_for_upsample)
@@ -486,7 +484,7 @@ class UNet(nn.Module):
 
         # Second half of U-Net
         for m in self.up_model:
-            x = m((x, up), t)
+            x = m(x, up, t)
 
         x = self.final_block(x)
 
