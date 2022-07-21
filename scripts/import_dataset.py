@@ -1,11 +1,10 @@
+import torchvision
 from torchvision.datasets import MNIST
 from scripts.dataset import CSSDdataset
 
 from torchvision import transforms
 from torch.utils.data import DataLoader, Subset
 import requests, zipfile, io, os
-import torch
-import torchvision.transforms as T
 
 
 # ratio_data to define the ratio of the total number of sample for train and test
@@ -85,11 +84,12 @@ def load_data_CIFAR10(train_batch_size, test_batch_size, ratio_data=1, verbose=F
     #     [transforms.ToTensor(),
     #      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-
-    train_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(), train=True,
-                                            download=True)
-    test_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(), train=False,
-                            download=True)
+    train_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(),
+                                              train=True,
+                                              download=True)
+    test_data = torchvision.datasets.CIFAR10(root="./CIFAR10", transform=transforms.ToTensor(),
+                                             train=False,
+                                             download=True)
 
     # Take only one part of the dataset
     data_train_less = Subset(train_data, range(0, len(train_data) // ratio_data))
@@ -102,21 +102,3 @@ def load_data_CIFAR10(train_batch_size, test_batch_size, ratio_data=1, verbose=F
 
 # How to use: 
 # data_train, data_test = load_data(train_batch_size=32, test_batch_size=32, ratio_data=100)
-
-
-# def test():
-
-#     torch.manual_seed(8)
-#     # train_loader, test_loader = load_MNIST(1, 1, 10000, verbose=True)  # [1, 1, 28, 28] 1 is the number of img in the batch, 1 is the number of channel, 28x28 pixels
-#     train_loader, test_loader = load_data_CSSD(1, 1, 0.20, verbose=True) 
-#     x = next(iter(train_loader))
-#     print(f"x is a {type(x)} of shape {x.shape}") 
-#     img = T.ToPILImage()(x[0])
-#     img.show()
-#     pass
-
-
-# if __name__ == "__main__":
-#     test()
-
-# >>>>>>> new_data
