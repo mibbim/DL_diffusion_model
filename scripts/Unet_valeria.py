@@ -412,8 +412,6 @@ class UNet(nn.Module):
             the number of probabilities you want to get per pixel aka  the number of output image's channels.
     * `n_conv_filters`: number, default is 32
             the number of convolutional filters for starting UNet block.
-    * `n_unet_blocks`: number, default is 7
-            the number of double convolutional blocks.
     * `dropout`: number, default is None 
             dropout rate. Use 0.1 as paper https://arxiv.org/pdf/2006.11239.pdf suggested - implementation https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py)
     * `is_attn`: List o booleans, default is (False, True, True)
@@ -421,32 +419,8 @@ class UNet(nn.Module):
     """
 
     def __init__(self, n_channels: int = 3, n_classes: int = 1, n_conv_filters: int = 32,
-                 n_unet_blocks: int = 7, dropout: float = None, is_attn: Union[Tuple[bool, ...], List[int]] = (False, True, True)):
-        assert (
-                n_unet_blocks >= 0 and n_unet_blocks % 2 == 1), "n_unet_blocks must be an odd number"
+                 dropout: float = None, is_attn: Union[Tuple[bool, ...], List[int]] = (False, True, True)):
         super(UNet, self).__init__()
-
-        # # First block
-        # model = [ConvBlockDownsample(n_channels, n_conv_filters, dropout=dropout)]
-
-        # # Downsample blocks
-        # n_downsample_blocks = n_unet_blocks // 2 #4
-        # for i in range(n_downsample_blocks - 1): # 0,1,2
-        #     mult = 2 ** i# 1 2 4
-        #     model += [ConvBlockDownsample(n_conv_filters * mult, n_conv_filters * mult * 2, dropout=dropout)]
-
-        # # Middle blocks
-        # mult_mid_block= 2 ** (n_downsample_blocks -1)
-        # model += DoubleConvBlock(n_conv_filters * mult_mid_block, n_conv_filters* mult_mid_block * 2)
-
-        # # Upsample blocks
-        # for i in range(n_downsample_blocks,0,-1): # 0,1,2,3
-        #     mult = 2 ** i# 1 2 4 8
-        #     model += [ConvBlockUpsample(n_channels, n_conv_filters * mult, dropout=dropout)]
-
-        # # Final block
-        # model += [OutConv(n_conv_filters, n_classes)]
-        # self.model = nn.Sequential(*model)
 
         # Time embedding layer. Time embedding has `n_channels * 4` channels
         self.time_emb = SinusoidalPositionEmbeddings(n_conv_filters * 4)
