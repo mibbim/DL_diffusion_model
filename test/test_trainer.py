@@ -78,7 +78,7 @@ def test_train_Unet_valeria():
                                                                  beta_max,
                                                                  n_steps,
                                                                  device=device))
-    model = DiffusionModel(noise_predictor=UNet_valeria(n_classes=10).to(device),
+    model = DiffusionModel(noise_predictor=UNet_valeria(n_classes=3).to(device),
                            noise_generator=noise_generator,
                            )
     trainer = Trainer(model=model,

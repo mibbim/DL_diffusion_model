@@ -535,7 +535,7 @@ if __name__ == "__main__":
     t = torch.tensor([50], dtype=torch.long)
 
     # Define the unet model
-    unet = UNet(n_classes=10)
+    unet = UNet(n_classes=1)
 
     # The foreward pass (takes both x and t)
     model_output = unet(x, t)
