@@ -6,11 +6,11 @@ from torchvision.transforms import ToPILImage
 
 from scripts.DiffusionModel import DiffusionModel
 from scripts.Unet_valeria import UNet as UNet_valeria
-from scripts.aiaiart_unet import UNet as Ai_unet
+from scripts.utils.aiaiart_unet import UNet as Ai_unet
 from scripts.noiseGenerator import NoiseGenerator
 from scripts.trainer import Trainer
-from scripts.import_dataset import load_data_CIFAR10
-from scripts.utils import default_device
+from scripts.utils.import_dataset import load_data_CIFAR10
+from scripts.utils.utils import default_device
 from scripts.variance_schedule import LinearVarianceSchedule, CosineVarianceSchedule
 
 script_dir = Path(__file__).resolve().parent

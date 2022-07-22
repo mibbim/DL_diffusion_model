@@ -65,10 +65,10 @@ def test_generate():
 
 if __name__ == "__main__":
     from torchvision.transforms import ToPILImage
-    from scripts.import_dataset import load_data_CIFAR10
+    from scripts.utils.import_dataset import load_data_CIFAR10
     from torch.nn.functional import mse_loss
     from scripts.DiffusionModel import default_model, NoiseGenerator
-    from scripts.utils import default_device
+    from scripts.utils.utils import default_device
 
     test_generate()
     test_noise()

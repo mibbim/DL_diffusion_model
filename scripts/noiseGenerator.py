@@ -5,7 +5,7 @@ from torch import LongTensor, Tensor
 from .variance_schedule import VarianceSchedule, LinearVarianceSchedule
 
 from typing import Tuple
-from .utils import default_device, Device, IDT
+from .utils.utils import default_device, Device, IDT
 
 
 class NoiseGenerator:

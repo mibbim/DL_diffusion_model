@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader
 
 from .DiffusionModel import DiffusionModel, default_model
 from .DiffusionModel import Loss
-from .performance_meter import AverageMeter
-from .utils import default_device, Device
+from scripts.utils.performance_meter import AverageMeter
+from .utils.utils import default_device, Device
 
 from torch.utils.tensorboard import SummaryWriter
 from torch import Tensor

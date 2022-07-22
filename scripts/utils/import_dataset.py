@@ -1,6 +1,6 @@
 import torchvision
 from torchvision.datasets import MNIST
-from scripts.dataset import CSSDdataset
+from scripts.utils.dataset import CSSDdataset
 
 from torchvision import transforms
 from torch.utils.data import DataLoader, Subset

@@ -1,6 +1,6 @@
 # python -m test_import_dataset
 
-from scripts.import_dataset import load_data_CIFAR10
+from scripts.utils.import_dataset import load_data_CIFAR10
 
 
 def test_import():

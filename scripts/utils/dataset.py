@@ -1,10 +1,11 @@
 from torch.utils.data import Dataset
-import imageio
+import imageio.v2 as imageio
 import os
 import torchvision.transforms as T
 
+
 class CSSDdataset(Dataset):
-    def __init__(self, main_dir, transform=None, test = False, ratio_test=0.20):
+    def __init__(self, main_dir, transform=None, test=False, ratio_test=0.20):
         self.main_dir = main_dir
         self.transform = transform
         # self.images = os.listdir(image_dir)
@@ -25,7 +26,7 @@ class CSSDdataset(Dataset):
         im = T.ToPILImage()(im)
 
         # minimum pixel of this dataset is x = 139 and y = 238
-        im = im.resize((139, 139)) #without keeping the ratio
+        im = im.resize((139, 139))  # without keeping the ratio
 
         if self.transform:
             im = self.transform(im)

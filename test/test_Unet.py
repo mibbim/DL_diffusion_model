@@ -4,9 +4,9 @@ simply some tests to verify the unet works
 
 import torch
 
-from scripts.aiaiart_unet import UNet
-from scripts.utils import default_device
-from scripts.import_dataset import load_data_CIFAR10
+from scripts.utils.aiaiart_unet import UNet
+from scripts.utils.utils import default_device
+from scripts.utils.import_dataset import load_data_CIFAR10
 
 
 def test_random_image():

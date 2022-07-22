@@ -9,7 +9,7 @@ from torch.nn.parameter import Parameter
 import torch
 import torch.nn as nn
 from .Unet_valeria import UNet
-from .utils import default_device, Device, IDT
+from .utils.utils import default_device, Device, IDT
 from .noiseGenerator import NoiseGenerator
 
 Loss = TypeVar("Loss")  # Loss function object

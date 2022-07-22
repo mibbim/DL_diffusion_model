@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from .utils import default_device, Device
+from .utils.utils import default_device, Device
 
 import torch
 from torch import Tensor
@@ -54,7 +54,6 @@ class CosineVarianceSchedule(VarianceSchedule):
     def __init__(self,
                  steps: int = 100,
                  device: Device | None = default_device):
-
         self.steps = steps
         t = torch.arange(self.steps, device=device) / self.steps
         s = 0.008

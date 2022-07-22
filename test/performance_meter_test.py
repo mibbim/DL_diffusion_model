@@ -1,4 +1,4 @@
-from scripts.performance_meter import AverageMeter
+from scripts.utils.performance_meter import AverageMeter
 
 
 def test_avg_meter():
