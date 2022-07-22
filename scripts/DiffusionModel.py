@@ -76,13 +76,15 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     # return loss
 
     def forward_and_backward_img(self, x: IDT):
-        if x.device != self.device:
-            x = x.to(self.device)
-        noisy_x, _, _ = self._noise_generator.add_noise(x, torch.tensor(self.max_diff_steps,
-                                                                        dtype=torch.long,
-                                                                        device=self.device))
-        denoised_x = self.generate_from(noisy_x)
-        return torch.cat((x[0], noisy_x[0], denoised_x[0]), dim=2)
+
+        raise NotImplementedError
+        # if x.device != self.device:
+        #     x = x.to(self.device)
+        # noisy_x, _, _ = self._noise_generator.add_noise(x, torch.tensor(self.max_diff_steps,
+        #                                                                 dtype=torch.long,
+        #                                                                 device=self.device))
+        # denoised_x = self.generate_from(noisy_x)
+        # return torch.cat((x[0], noisy_x[0], denoised_x[0]), dim=2)
 
     @torch.no_grad()
     def val_step(self, x: IDT, validation_metric):
