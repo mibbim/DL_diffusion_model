@@ -11,7 +11,7 @@ def test_noise():
         beta=LinearVarianceSchedule(steps=total_steps)
     )
     torch.manual_seed(8)
-    train, _ = load_MNIST(1, 1, 1000)
+    train, _ = load_data_CIFAR10(1, 1, 1000)
     x, y = next(iter(train))
     img = x[0]
     for t in np.geomspace(1, total_steps - 1, 10):
@@ -29,10 +29,11 @@ def test_noise():
 
 
 def test_trainstep():
+    """Removed method"""
     torch.manual_seed(8)
     model = default_model()
     model.train()
-    train, _ = load_MNIST(2, 1, 1000)
+    train, _ = load_data_CIFAR10(2, 1, 1000)
     x, y = next(iter(train))
     losses = []
     for _ in range(100):
@@ -52,24 +53,24 @@ def test_generate():
     ToPILImage()(res[0]).show()
 
 
-def test_fwd_and_bkwd():
-    train, _ = load_MNIST(2, 1, 1000)
-    x, _ = next(iter(train))
-    model = default_model()
-    x, noisy, denoised = model.forward_and_backward_img(x)
-    img = torch.cat((x, noisy, denoised))
-    ToPILImage()(img).show()
+# Feature to be fixed
+# def test_fwd_and_bkwd():
+#     train, _ = load_data_CIFAR10(2, 1, 1000)
+#     x, _ = next(iter(train))
+#     model = default_model()
+#     x, noisy, denoised = model.forward_and_backward_img(x)
+#     img = torch.cat((x, noisy, denoised))
+#     ToPILImage()(img).show()
 
 
 if __name__ == "__main__":
     from torchvision.transforms import ToPILImage
-    from scripts.import_dataset import load_MNIST
+    from scripts.import_dataset import load_data_CIFAR10
     from torch.nn.functional import mse_loss
     from scripts.DiffusionModel import default_model, NoiseGenerator
-    from scripts.Unet import Generator
     from scripts.utils import default_device
 
-    # test_generate()
-    # test_noise()
+    test_generate()
+    test_noise()
     # test_trainstep()
-    test_fwd_and_bkwd()
+    # test_fwd_and_bkwd()
