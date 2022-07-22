@@ -1,4 +1,8 @@
-# A fancy activation function
+"""
+A Unet implementation, copyed from
+https://colab.research.google.com/drive/1NFxjNI-UIR7Ku0KERmv7Yb_586vHQW43?usp=sharing#scrollTo=aHwkcmvkRLH0
+for testing purposes
+"""
 import math
 from typing import Optional, Tuple, Union, List
 
