@@ -62,15 +62,25 @@ def test_train():
     ToPILImage()(img).show()
 
 
-def test_train_Unet_valeria(n_epochs=10,valid_each=1, train_batch_size=32, test_batch_size=32,
-                            ratio_data=100, n_time_steps=n_steps, learning_rate=2e-4, dropout=None, n_conv_filters=64):
+def test_train_Unet_valeria(
+        n_epochs=10,
+        valid_each=1,
+        train_batch_size=32,
+        test_batch_size=32,
+        ratio_data=100,
+        n_time_steps=n_steps,
+        learning_rate=2e-4,
+        dropout=None,
+        n_conv_filters=64):
     out_path = script_dir / "out" / "{now:%Y-%m-%d}_{now:%H:%M:%S}".format(
         now=datetime.now())
     noise_generator = NoiseGenerator(beta=LinearVarianceSchedule(beta_min,
                                                                  beta_max,
                                                                  n_steps,
                                                                  device=device))
-    model = DiffusionModel(noise_predictor=UNet_valeria(n_classes=3, dropout=dropout, n_conv_filters=n_conv_filters).to(device), #is_attn=(False, False, True), dropout=0.1
+    model = DiffusionModel(noise_predictor=UNet_valeria(n_classes=3, dropout=dropout,
+                                                        n_conv_filters=n_conv_filters).to(device),
+                           # is_attn=(False, False, True), dropout=0.1
                            noise_generator=noise_generator,
                            )
     trainer = Trainer(model=model,
