@@ -1,3 +1,7 @@
+"""
+simply some tests to verify the unet works
+"""
+
 import torch
 
 from scripts.aiaiart_unet import UNet

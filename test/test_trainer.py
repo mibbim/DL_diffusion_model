@@ -11,7 +11,7 @@ from scripts.noiseGenerator import NoiseGenerator
 from scripts.trainer import Trainer
 from scripts.import_dataset import load_data_CIFAR10
 from scripts.utils import default_device
-from scripts.variance_schedule import LinearVarianceSchedule
+from scripts.variance_schedule import LinearVarianceSchedule, CosineVarianceSchedule
 
 script_dir = Path(__file__).resolve().parent
 
@@ -24,7 +24,7 @@ alpha = (1. - beta).to(device)
 alpha_bar = torch.cumprod(alpha, dim=0).to(device)
 
 
-def test_train():
+def test_train_with_other_unet():
     """
     A template for training a DiffusionModel with a Trainer
     """
@@ -32,20 +32,22 @@ def test_train():
         now=datetime.now())
     noise_generator = NoiseGenerator(beta=LinearVarianceSchedule(beta_min,
                                                                  beta_max,
-                                                                 n_steps,
+                                                                 1000,
                                                                  device=device))
-    model = DiffusionModel(noise_predictor=Ai_unet(n_channels=32).to(device),
-                           noise_generator=noise_generator,
-                           )
+    model = DiffusionModel(
+        noise_predictor=Ai_unet(n_channels=32).to(device),
+        noise_generator=NoiseGenerator(beta=CosineVarianceSchedule(n_steps,
+                                                                   device=device)),
+    )
     trainer = Trainer(model=model,
                       optimizer="AdamW",
                       learning_rate=2e-4,
                       out_path=out_path)
 
-    train_loader, test_loader = load_data_CIFAR10(train_batch_size=128,
+    train_loader, test_loader = load_data_CIFAR10(train_batch_size=32,
                                                   test_batch_size=256,
                                                   ratio_data=100, )
-    trainer.train(n_epochs=20,
+    trainer.train(n_epochs=10,
                   train_dataloader=train_loader,
                   val_dataloader=test_loader,
                   valid_each=2,
@@ -55,10 +57,10 @@ def test_train():
     x = x.to(device)
     noised_x, noise, t = model._noise_generator.add_noise(x, torch.tensor(99, dtype=torch.long,
                                                                           device=device))
-    img = torch.cat((x, noised_x, model.generate_from(noised_x)[0]))
+    img = torch.cat((x[0], noised_x[0], model.generate_from(noised_x[:1])[0]), dim=2)
     ToPILImage()(img).show()
-    noise = torch.randn_like(x)
-    img = torch.cat((noise, model.generate_from(noise)[0]))
+    noise = torch.randn_like(x[:1])
+    img = torch.cat((noise[0], model.generate_from(noise)[0]), dim=2)
     ToPILImage()(img).show()
 
 
@@ -113,5 +115,5 @@ def test_train_Unet_valeria(
 
 
 if __name__ == "__main__":
-    # test_train()
-    test_train_Unet_valeria()
+    test_train_with_other_unet()
+    # test_train_Unet_valeria()

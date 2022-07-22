@@ -52,12 +52,9 @@ class LinearVarianceSchedule(VarianceSchedule):
 
 class CosineVarianceSchedule(VarianceSchedule):
     def __init__(self,
-                 lower: float | None = 0.0001,
-                 upper: float | None = 0.04,
                  steps: int = 100,
                  device: Device | None = default_device):
-        self.min = lower
-        self.max = upper
+
         self.steps = steps
         t = torch.arange(self.steps, device=device) / self.steps
         s = 0.008
