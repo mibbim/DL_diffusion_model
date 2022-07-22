@@ -67,10 +67,10 @@ class Trainer:
         self.model = model.to(device)
         self.opt = optimizers_dict[optimizer](params=model.parameters(), lr=learning_rate)
         self.history = {"train_loss": [],
-                        "val_loss": []}
+                        "val_loss": [],
+                        # "fwd_and_bkwd": [],
+                        }
         self.dumper = metric_dumper
-
-        # self.lr = learning_rate
 
     def train(self,
               n_epochs: int,
@@ -122,7 +122,10 @@ class Trainer:
     def dump_history(self):
         for k, v_list in self.history.items():
             for epoch_and_val in v_list:
-                self.dumper.dump_scalars({k: epoch_and_val})
+                # if isinstance(epoch_and_val[1], torch.Tensor):
+                #     self.dumper.dump_image({k: epoch_and_val})
+                if isinstance(epoch_and_val[1], float):
+                    self.dumper.dump_scalars({k: epoch_and_val})
 
     def _eval_val_loss(self,
                        data_loader: DataLoader,
@@ -146,19 +149,14 @@ class Trainer:
                                  data_loader: DataLoader,
                                  epoch: int):
         x, _ = next(iter(data_loader))
-        x, noisy, denoised = self.model.forward_and_backward_img(x)
+        fwd_and_bkwd = self.model.forward_and_backward_img(x)
+        return epoch, fwd_and_bkwd
 
     def validate(self, data_loader: DataLoader, validation_metric: Loss, epoch: int):
-        # validation_meter = AverageMeter(["val_mse"])
-        # best_loss = torch.inf
-        # for x, y in data_loader:
-        #     x = x.to(self.device)
-        #     val_loss = self.model.val_step(x, validation_metric)
-        #     if val_loss.item() < best_loss:
-        #         self.store_state(epoch)
-        #     validation_meter.update({"val_mse": val_loss.item()}, n=x.shape[0])
         validation_meter = self._eval_val_loss(data_loader, validation_metric, epoch)
         self.history["val_loss"].append((epoch, validation_meter.metrics["val_mse"]["avg"]))
+        # fwd_and_bkwd = self._eval_img_reconstruction(data_loader, epoch) # TODO need fix
+        # self.history["fwd_and_bkwd"].append(fwd_and_bkwd) # TODO need fix
         self.dump_history()
         self._clear_history()
         validation_meter.reset()

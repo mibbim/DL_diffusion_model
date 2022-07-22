@@ -60,7 +60,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     def predict_noise(self, x: IDT, t: torch.Tensor):
         return self._noise_predictor(x, t)
 
-    # def train_step(self,
+    # def train_step(self, # TODO some fixes are required, moved responsibility to trainer
     #                x: IDT,
     #                optimizer: Optimizer,
     #                loss_fun: Loss,
@@ -69,11 +69,11 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
     #     noisy_x, noise, t = self._noise_generator.add_noise(x, t)
     #     predicted_noise = self.predict_noise(x, t)
     #     return noise, predicted_noise
-        # loss = loss_fun(noise.float(), predicted_noise)
-        # optimizer.zero_grad()
-        # loss.backward()
-        # optimizer.step()
-        # return loss
+    # loss = loss_fun(noise.float(), predicted_noise)
+    # optimizer.zero_grad()
+    # loss.backward()
+    # optimizer.step()
+    # return loss
 
     def forward_and_backward_img(self, x: IDT):
         if x.device != self.device:
@@ -82,7 +82,7 @@ class DiffusionModel(nn.Module):  # Not sure should inherit
                                                                         dtype=torch.long,
                                                                         device=self.device))
         denoised_x = self.generate_from(noisy_x)
-        return x, noisy_x, denoised_x
+        return torch.cat((x[0], noisy_x[0], denoised_x[0]), dim=2)
 
     @torch.no_grad()
     def val_step(self, x: IDT, validation_metric):
