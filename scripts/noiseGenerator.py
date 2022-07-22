@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 from torch import LongTensor, Tensor
-from .variance_schedule import LinearVarianceSchedule
+from .variance_schedule import VarianceSchedule, LinearVarianceSchedule
 
 from typing import Tuple
 from .utils import default_device, Device, IDT
@@ -10,7 +10,7 @@ from .utils import default_device, Device, IDT
 
 class NoiseGenerator:
     def __init__(self,
-                 beta: LinearVarianceSchedule = LinearVarianceSchedule(),
+                 beta: VarianceSchedule = LinearVarianceSchedule(),
                  device: Device | None = default_device
                  ):
         self.device = device
