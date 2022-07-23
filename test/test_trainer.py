@@ -115,5 +115,5 @@ def test_train_Unet_valeria(
 
 
 if __name__ == "__main__":
-    test_train_with_other_unet()
-    # test_train_Unet_valeria()
+    # test_train_with_other_unet()
+    test_train_Unet_valeria()
